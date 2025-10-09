@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tonys-chips-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tonys_chips
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chips-network
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: tonys-chips-api
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/tonys_chips
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm start"
+    networks:
+      - chips-network
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000
+    container_name: tonys-chips-web
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    networks:
+      - chips-network
+
+volumes:
+  postgres_data:
+
+networks:
+  chips-network:
+    driver: bridge

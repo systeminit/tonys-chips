@@ -1,0 +1,23 @@
+import prisma from '../config/database';
+
+// Setup test database before all tests
+beforeAll(async () => {
+  // Ensure database is initialized
+  await prisma.$connect();
+});
+
+// Clean up after all tests
+afterAll(async () => {
+  // Cleanup test data
+  await prisma.cartItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.product.deleteMany();
+
+  await prisma.$disconnect();
+});
+
+// Clean up cart and order data between tests
+beforeEach(async () => {
+  await prisma.cartItem.deleteMany();
+  await prisma.order.deleteMany();
+});
