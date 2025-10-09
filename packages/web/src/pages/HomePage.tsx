@@ -43,9 +43,17 @@ const HomePage: React.FC = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        Welcome to Tony's World of Chips
+      {/* Amazon-style breadcrumb */}
+      <div className="text-sm text-gray-700 mb-4">
+        <span className="hover:text-[#c7511f] hover:underline cursor-pointer font-medium">Home</span>
+        <span className="mx-2">›</span>
+        <span className="font-medium">All Chips</span>
+      </div>
+
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">
+        Premium Potato Chips & Snacks
       </h1>
+
       <ProductGrid products={products} />
     </div>
   );

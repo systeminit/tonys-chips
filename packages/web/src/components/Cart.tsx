@@ -21,11 +21,11 @@ const Cart: React.FC = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-600 text-lg mb-4">Your cart is empty</p>
+      <div className="bg-white border border-gray-200 rounded p-8 text-center">
+        <p className="text-2xl mb-4">Your Tony's Chips Cart is empty</p>
         <Link
           to="/"
-          className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+          className="inline-block bg-[#ffd814] hover:bg-[#f7ca00] px-6 py-2 rounded-full border border-[#fcd200] shadow-sm"
         >
           Continue Shopping
         </Link>
@@ -33,26 +33,43 @@ const Cart: React.FC = () => {
     );
   }
 
+  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
-    <div className="space-y-4">
-      <div className="space-y-4">
-        {cart.map((item) => (
-          <CartItem key={item.id} item={item} />
-        ))}
-      </div>
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-xl font-semibold">Total:</span>
-          <span className="text-2xl font-bold text-blue-600">
-            ${total.toFixed(2)}
-          </span>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Cart items */}
+      <div className="lg:col-span-9">
+        <div className="bg-white border border-gray-200 rounded">
+          <div className="p-4 border-b border-gray-200">
+            <p className="text-sm">
+              <b>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'}):</b>{' '}
+              <span className="text-lg font-bold">${total.toFixed(2)}</span>
+            </p>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {cart.map((item) => (
+              <CartItem key={item.id} item={item} />
+            ))}
+          </div>
         </div>
-        <Link
-          to="/checkout"
-          className="block w-full bg-green-600 text-white text-center py-3 rounded-md hover:bg-green-700 font-semibold"
-        >
-          Proceed to Checkout
-        </Link>
+      </div>
+
+      {/* Checkout sidebar */}
+      <div className="lg:col-span-3">
+        <div className="bg-white border border-gray-200 rounded p-4 sticky top-4">
+          <div className="mb-4">
+            <p className="text-sm mb-2">
+              <b>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'}):</b>
+            </p>
+            <p className="text-lg font-bold">${total.toFixed(2)}</p>
+          </div>
+          <Link
+            to="/checkout"
+            className="block w-full bg-[#ffd814] hover:bg-[#f7ca00] text-sm py-2 px-4 rounded-full border border-[#fcd200] shadow-sm text-center"
+          >
+            Proceed to Checkout
+          </Link>
+        </div>
       </div>
     </div>
   );

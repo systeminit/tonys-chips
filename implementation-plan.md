@@ -2,8 +2,8 @@
 
 ## Current Status
 - **Current Phase**: Phase 5 - Docker Containerization
-- **Last Completed**: Phase 4 - Frontend Development (All components, pages, and routes implemented)
-- **Next Task**: Create docker/api.Dockerfile
+- **Last Completed**: Phase 5.3 - Docker Compose (Full stack running successfully)
+- **Next Task**: Phase 6 - Build & Deployment Preparation
 
 **Note**: Phase 4 (Frontend Development) has been completed successfully. The React application is fully functional with all components, pages, routing, state management, and API integration. Both API and web servers are running:
 - API Server: http://localhost:3000 (12 products seeded)
@@ -395,72 +395,86 @@ Going forward, tests should be written and run between major development phases 
 
 ## Phase 5: Docker Containerization
 
-### 5.1 API Container
+### 5.1 API Container ✅
 **Requires**: Phase 3.4 complete
 
-- [ ] Create `docker/api.Dockerfile`
-  - Base: node:20-slim or similar
-  - Copy package files, install deps
-  - Copy source and build
+- [x] Create `docker/api.Dockerfile`
+  - Base: node:20-slim
+  - Mimics monorepo structure (copies root tsconfig.json)
+  - Install deps, copy source, build TypeScript
   - Run Prisma generate
   - Expose port 3000
   - CMD: start server
-  - **Verification**: File exists
+  - **Verification**: File exists at docker/api.Dockerfile ✓
 
-- [ ] Create `packages/api/.dockerignore`
+- [x] Create `packages/api/.dockerignore`
   - Ignore node_modules, .env, dist
-  - **Verification**: File exists
+  - **Verification**: File exists ✓
 
-- [ ] Build API Docker image
-  - Command: `docker build -f docker/api.Dockerfile -t tonys-chips-api:test ./packages/api`
-  - **Verification**: Image builds successfully
+- [x] Build API Docker image
+  - Command: `docker build -f docker/api.Dockerfile -t tonys-chips-api:test .` (build from root context)
+  - **Verification**: Image builds successfully ✓
 
-- [ ] Test API container locally
-  - Command: `docker run -p 3000:3000 --env-file packages/api/.env tonys-chips-api:test`
-  - **Verification**: Container runs, API responds
+- [x] Test API container locally
+  - Command: `docker run -p 3002:3000 --env-file packages/api/.env tonys-chips-api:test`
+  - **Verification**: Container runs, server starts on port 3000 ✓
+  - Note: Database connectivity will be configured with Docker Compose in Phase 5.3
 
-### 5.2 Web Container
+### 5.2 Web Container ✅
 **Requires**: Phase 4.6 complete
 
-- [ ] Create `docker/web.Dockerfile` (multi-stage)
+- [x] Create `docker/web.Dockerfile` (multi-stage)
   - Stage 1: Build React app with Node
   - Stage 2: Serve with nginx
   - Copy build output to nginx html directory
   - Configure nginx for SPA routing
   - Expose port 80
-  - **Verification**: File exists
+  - **Verification**: File exists at docker/web.Dockerfile ✓
 
-- [ ] Create `docker/nginx.conf`
+- [x] Create `docker/nginx.conf`
   - Configure try_files for SPA routing
-  - **Verification**: File exists
+  - Cache static assets, disable cache for index.html
+  - Enable gzip compression
+  - **Verification**: File exists ✓
 
-- [ ] Create `packages/web/.dockerignore`
+- [x] Create `packages/web/.dockerignore`
   - Ignore node_modules, dist
-  - **Verification**: File exists
+  - **Verification**: File exists ✓
 
-- [ ] Build web Docker image
-  - Command: `docker build -f docker/web.Dockerfile -t tonys-chips-web:test ./packages/web`
-  - **Verification**: Image builds successfully
+- [x] Build web Docker image
+  - Command: `docker build -f docker/web.Dockerfile -t tonys-chips-web:test .` (build from root context)
+  - **Verification**: Image builds successfully ✓
 
-- [ ] Test web container locally
+- [x] Test web container locally
   - Command: `docker run -p 8080:80 tonys-chips-web:test`
-  - **Verification**: Container runs, app accessible at localhost:8080
+  - **Verification**: Container runs, app accessible at localhost:8080, SPA routing works ✓
 
-### 5.3 Docker Compose for Local Testing
+### 5.3 Docker Compose for Local Testing ✅
 **Requires**: Phase 5.2 complete
 
-- [ ] Create `docker-compose.yml` in project root
-  - Services: postgres, api, web
-  - Configure networking
+- [x] Create `docker-compose.yml` in project root
+  - Services: postgres (PostgreSQL 16), api, web
+  - Configure networking with bridge network
   - Set environment variables
-  - **Verification**: File exists
+  - Health checks for postgres
+  - **Verification**: File exists ✓
 
-- [ ] Test full stack with Docker Compose
-  - Command: `docker-compose up`
-  - **Verification**: All three services start, app works end-to-end
+- [x] Update Prisma schema from SQLite to PostgreSQL
+  - Changed provider to `postgresql`
+  - Removed old SQLite migrations
+  - **Verification**: Schema updated ✓
 
-- [ ] Test database migrations in container
-  - **Verification**: Prisma migrations run successfully on container startup
+- [x] Test full stack with Docker Compose
+  - Command: `docker-compose up --build`
+  - **Verification**: All three services start and communicate ✓
+  - API accessible at http://localhost:3000
+  - Web accessible at http://localhost:8080
+  - Database accessible at localhost:5432
+
+- [x] Test database migrations in container
+  - Migrations auto-create and apply on startup
+  - Database seeded with 12 products
+  - **Verification**: Prisma migrations run successfully, API returns data ✓
 
 ---
 

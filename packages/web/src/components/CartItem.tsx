@@ -44,46 +44,50 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
   const subtotal = item.product.price * item.quantity;
 
   return (
-    <div className="flex gap-4 p-4 bg-white rounded-lg shadow-md">
-      <img
-        src={item.product.imageUrl}
-        alt={item.product.name}
-        className="w-24 h-24 object-cover rounded"
-      />
+    <div className="flex gap-4 p-4">
+      <div className="w-32 h-32 flex-shrink-0">
+        <img
+          src={item.product.imageUrl}
+          alt={item.product.name}
+          className="w-full h-full object-contain"
+        />
+      </div>
       <div className="flex-1">
-        <h3 className="text-lg font-semibold text-gray-800">
+        <h3 className="text-base font-normal text-gray-900 mb-1">
           {item.product.name}
         </h3>
-        <p className="text-sm text-gray-600">{item.product.brand}</p>
-        <p className="text-blue-600 font-semibold mt-1">
-          ${item.product.price.toFixed(2)}
-        </p>
-      </div>
-      <div className="flex flex-col items-end justify-between">
-        <button
-          onClick={handleRemove}
-          className="text-red-500 hover:text-red-700 text-sm"
-        >
-          Remove
-        </button>
-        <div className="flex items-center gap-2">
+        <p className="text-sm text-green-700 font-semibold mb-2">In Stock</p>
+        <p className="text-xs text-gray-600 mb-3">Brand: {item.product.brand}</p>
+
+        <div className="flex items-center gap-4 mb-2">
+          <div className="flex items-center border border-gray-300 rounded">
+            <button
+              onClick={handleDecrement}
+              disabled={item.quantity === 1 || updating}
+              className="px-3 py-1 hover:bg-gray-100 disabled:bg-gray-50 disabled:cursor-not-allowed border-r border-gray-300"
+            >
+              -
+            </button>
+            <span className="px-4 py-1 bg-[#f0f2f2] min-w-[50px] text-center">{item.quantity}</span>
+            <button
+              onClick={handleIncrement}
+              disabled={updating}
+              className="px-3 py-1 hover:bg-gray-100 disabled:bg-gray-50 disabled:cursor-not-allowed border-l border-gray-300"
+            >
+              +
+            </button>
+          </div>
+
           <button
-            onClick={handleDecrement}
-            disabled={item.quantity === 1 || updating}
-            className="bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-1 rounded"
+            onClick={handleRemove}
+            className="text-sm text-[#007185] hover:text-[#c7511f] hover:underline"
           >
-            -
-          </button>
-          <span className="w-8 text-center font-semibold">{item.quantity}</span>
-          <button
-            onClick={handleIncrement}
-            disabled={updating}
-            className="bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed px-3 py-1 rounded"
-          >
-            +
+            Delete
           </button>
         </div>
-        <p className="text-lg font-bold text-gray-800">
+      </div>
+      <div className="text-right">
+        <p className="text-lg font-bold text-gray-900">
           ${subtotal.toFixed(2)}
         </p>
       </div>

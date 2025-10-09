@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import type { CartItem } from '../types/index.ts';
 import * as cartService from '../services/cartService.ts';
 import * as orderService from '../services/orderService.ts';

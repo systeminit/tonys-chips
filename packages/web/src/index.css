@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+header a {
+  color: white !important;
+  text-decoration: none !important;
+}
+
+header a:visited {
+  color: white !important;
+}
+
+header a:hover {
+  color: white !important;
+}

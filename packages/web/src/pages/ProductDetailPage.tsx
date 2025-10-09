@@ -62,62 +62,127 @@ const ProductDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <button
-        onClick={() => navigate('/')}
-        className="text-blue-600 hover:text-blue-800 mb-4"
-      >
-        &larr; Back to Products
-      </button>
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="md:flex">
-          <div className="md:w-1/2">
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="w-full h-96 object-cover"
-            />
-          </div>
-          <div className="md:w-1/2 p-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              {product.name}
-            </h1>
-            <p className="text-xl text-gray-600 mb-4">{product.brand}</p>
-            <p className="text-3xl font-bold text-blue-600 mb-6">
-              ${product.price.toFixed(2)}
-            </p>
-            <p className="text-gray-700 mb-6">{product.description}</p>
-            <div className="mb-6">
-              <p className="text-gray-600 mb-2">
-                Stock:{' '}
-                {product.stockQuantity > 0 ? (
-                  <span className="text-green-600 font-semibold">
-                    {product.stockQuantity} available
-                  </span>
-                ) : (
-                  <span className="text-red-600 font-semibold">Out of stock</span>
-                )}
-              </p>
-            </div>
-            <div className="flex gap-4 items-center mb-6">
-              <label className="text-gray-700 font-semibold">Quantity:</label>
-              <input
-                type="number"
-                min="1"
-                max={product.stockQuantity}
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="border border-gray-300 rounded px-3 py-2 w-20"
-                disabled={product.stockQuantity === 0}
+    <div>
+      {/* Breadcrumb */}
+      <div className="text-xs text-gray-600 mb-4">
+        <button onClick={() => navigate('/')} className="hover:text-[#c7511f] hover:underline">
+          Home
+        </button>
+        <span className="mx-2">›</span>
+        <button onClick={() => navigate('/')} className="hover:text-[#c7511f] hover:underline">
+          All Chips
+        </button>
+        <span className="mx-2">›</span>
+        <span>{product.brand}</span>
+        <span className="mx-2">›</span>
+        <span>{product.name}</span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Product Image */}
+        <div className="lg:col-span-5">
+          <div className="bg-white border border-gray-200 rounded p-6">
+            <div className="aspect-square flex items-center justify-center">
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="max-h-full max-w-full object-contain"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Product Info */}
+        <div className="lg:col-span-4">
+          <div className="bg-white">
+            <h1 className="text-2xl font-normal text-gray-900 mb-2">
+              {product.name}
+            </h1>
+            <p className="text-sm text-[#007185] hover:text-[#c7511f] mb-3 cursor-pointer">
+              Visit the {product.brand} Store
+            </p>
+
+            {/* Rating */}
+            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-gray-200">
+              <div className="flex text-[#ffa41c] text-sm">
+                {'★★★★★'.split('').map((star, i) => (
+                  <span key={i}>{star}</span>
+                ))}
+              </div>
+              <span className="text-sm text-[#007185]">{product.stockQuantity} ratings</span>
+            </div>
+
+            {/* Price */}
+            <div className="mb-4">
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className="text-sm text-gray-700">Price:</span>
+                <span className="text-xs align-top text-gray-900">$</span>
+                <span className="text-3xl font-normal text-gray-900">{Math.floor(product.price)}</span>
+                <span className="text-sm align-top text-gray-900">{(product.price % 1).toFixed(2).substring(1)}</span>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="mb-6 pb-6 border-b border-gray-200">
+              <h2 className="text-base font-bold mb-2">About this item</h2>
+              <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                <li>{product.description}</li>
+                <li>Brand: {product.brand}</li>
+                <li>Premium quality chips</li>
+                <li>Perfect for snacking</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Buy Box */}
+        <div className="lg:col-span-3">
+          <div className="bg-white border border-gray-200 rounded p-4 sticky top-4">
+            <div className="flex items-baseline gap-1 mb-3">
+              <span className="text-xs align-top">$</span>
+              <span className="text-3xl font-normal">{Math.floor(product.price)}</span>
+              <span className="text-sm align-top">{(product.price % 1).toFixed(2).substring(1)}</span>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-3">FREE Returns</p>
+            <p className="text-xs text-gray-600 mb-4">FREE delivery <b>Tomorrow</b></p>
+
+            {product.stockQuantity > 0 ? (
+              <p className="text-lg text-green-700 font-semibold mb-4">In Stock</p>
+            ) : (
+              <p className="text-lg text-red-600 font-semibold mb-4">Out of Stock</p>
+            )}
+
+            <div className="mb-4">
+              <label className="text-xs font-bold block mb-1">Quantity:</label>
+              <select
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value))}
+                disabled={product.stockQuantity === 0}
+                className="bg-[#f0f2f2] border border-gray-300 rounded shadow-sm text-sm px-3 py-2 w-full hover:bg-gray-100"
+              >
+                {[...Array(Math.min(10, product.stockQuantity))].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                ))}
+              </select>
+            </div>
+
             <button
               onClick={handleAddToCart}
               disabled={product.stockQuantity === 0 || adding}
-              className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold text-lg"
+              className="w-full bg-[#ffd814] hover:bg-[#f7ca00] text-sm py-2 px-4 rounded-full border border-[#fcd200] shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed mb-2"
             >
               {adding ? 'Adding to Cart...' : 'Add to Cart'}
             </button>
+
+            <button className="w-full bg-[#ffa41c] hover:bg-[#fa8900] text-sm py-2 px-4 rounded-full border border-[#ff8f00] shadow-sm">
+              Buy Now
+            </button>
+
+            <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-600 space-y-1">
+              <p>Ships from Tony's Chips</p>
+              <p>Sold by Tony's Chips</p>
+            </div>
           </div>
         </div>
       </div>

@@ -23,40 +23,52 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-      <Link to={`/products/${product.id}`}>
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="w-full h-48 object-cover"
-        />
+    <div className="bg-white border border-gray-300 rounded-lg p-4 hover:shadow-xl transition-shadow">
+      <Link to={`/products/${product.id}`} className="block">
+        <div className="aspect-square mb-3 flex items-center justify-center bg-white">
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="max-h-full max-w-full object-contain"
+          />
+        </div>
       </Link>
-      <div className="p-4">
+      <div>
         <Link to={`/products/${product.id}`}>
-          <h3 className="text-lg font-semibold text-gray-800 hover:text-blue-600">
+          <h3 className="text-base font-medium text-gray-900 hover:text-[#c7511f] line-clamp-2 mb-2 min-h-[48px]">
             {product.name}
           </h3>
         </Link>
-        <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
-        <p className="text-gray-700 text-sm mb-4 line-clamp-2">
-          {product.description}
-        </p>
-        <div className="flex justify-between items-center">
-          <span className="text-xl font-bold text-blue-600">
-            ${product.price.toFixed(2)}
-          </span>
-          <span className="text-sm text-gray-600">
-            {product.stockQuantity > 0 ? (
-              `${product.stockQuantity} in stock`
-            ) : (
-              <span className="text-red-500">Out of stock</span>
-            )}
-          </span>
+        <p className="text-sm text-gray-700 mb-2 font-medium">{product.brand}</p>
+
+        {/* Amazon-style rating (placeholder) */}
+        <div className="flex items-center gap-1 mb-3">
+          <div className="flex text-[#ffa41c]">
+            {'★★★★★'.split('').map((star, i) => (
+              <span key={i} className="text-base">{star}</span>
+            ))}
+          </div>
+          <span className="text-sm text-[#007185] font-medium">({product.stockQuantity})</span>
         </div>
+
+        {/* Price */}
+        <div className="mb-4">
+          <div className="flex items-baseline gap-1 mb-1">
+            <span className="text-sm align-top font-bold text-gray-900">$</span>
+            <span className="text-3xl font-bold text-gray-900">{Math.floor(product.price)}</span>
+            <span className="text-sm align-top font-bold text-gray-900">{(product.price % 1).toFixed(2).substring(1)}</span>
+          </div>
+          {product.stockQuantity > 0 ? (
+            <p className="text-sm text-green-700 font-bold">In Stock</p>
+          ) : (
+            <p className="text-sm text-red-600 font-bold">Out of Stock</p>
+          )}
+        </div>
+
         <button
           onClick={handleAddToCart}
           disabled={product.stockQuantity === 0 || adding}
-          className="w-full mt-4 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-[#ffd814] hover:bg-[#f7ca00] text-sm font-bold py-2.5 px-4 rounded-lg border border-[#fcd200] shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           {adding ? 'Adding...' : 'Add to Cart'}
         </button>
