@@ -12,7 +12,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "description": "API for Tony's World of Chips",
   "dependencies": {
     "@prisma/client": "^6.17.0",

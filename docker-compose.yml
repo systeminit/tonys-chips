@@ -34,7 +34,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: sh -c "npx prisma migrate dev --name init --skip-generate && npx prisma db seed && npm start"
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm start"
     networks:
       - chips-network
 
