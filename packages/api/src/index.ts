@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { errorHandler } from './middleware/errorHandler';
 import productRoutes from './routes/products';
+import cartRoutes from './routes/cart';
+import orderRoutes from './routes/orders';
 
 dotenv.config();
 
@@ -20,8 +22,8 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/products', productRoutes);
-// app.use('/api/cart', cartRoutes);
-// app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

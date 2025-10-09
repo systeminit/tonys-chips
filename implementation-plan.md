@@ -1,9 +1,15 @@
 # Implementation Plan: Tony's World of Chips
 
 ## Current Status
-- **Current Phase**: Phase 3.3 - Cart Endpoints
-- **Last Completed**: Phase 3.2 - Product Endpoints
-- **Next Task**: Create packages/api/src/routes/cart.ts
+- **Current Phase**: Phase 5 - Docker Containerization
+- **Last Completed**: Phase 4 - Frontend Development (All components, pages, and routes implemented)
+- **Next Task**: Create docker/api.Dockerfile
+
+**Note**: Phase 4 (Frontend Development) has been completed successfully. The React application is fully functional with all components, pages, routing, state management, and API integration. Both API and web servers are running:
+- API Server: http://localhost:3000 (12 products seeded)
+- Web Server: http://localhost:5173
+
+Going forward, tests should be written and run between major development phases to ensure code quality and catch issues early.
 
 ---
 
@@ -207,6 +213,50 @@
 
 - [ ] Add validation middleware to routes
   - **Verification**: Invalid requests return 400 errors
+
+---
+
+## Phase 3.6: API Testing ✅
+**Requires**: Phase 3.4 complete
+
+- [x] Install testing dependencies
+  - Command: `npm install -D jest @types/jest ts-jest supertest @types/supertest --workspace=@chips/api`
+  - **Verification**: Dependencies in package.json ✓
+
+- [x] Create `packages/api/jest.config.js`
+  - Configure ts-jest preset
+  - **Verification**: File exists with proper configuration ✓
+
+- [x] Create `packages/api/src/__tests__/setup.ts`
+  - Setup database connection and cleanup
+  - **Verification**: Setup file clears test data properly ✓
+
+- [x] Write tests for product endpoints
+  - Create `packages/api/src/__tests__/products.test.ts`
+  - Test GET /api/products and GET /api/products/:id
+  - **Verification**: All product tests pass (4/4) ✓
+
+- [x] Write tests for cart endpoints
+  - Create `packages/api/src/__tests__/cart.test.ts`
+  - Test POST, GET, PUT, DELETE for cart items
+  - **Verification**: All cart tests pass (13/13) ✓
+
+- [x] Write tests for order endpoint
+  - Create `packages/api/src/__tests__/orders.test.ts`
+  - Test POST /api/orders (checkout)
+  - **Verification**: All order tests pass (4/4) ✓
+
+- [x] Run all tests
+  - Command: `npm test --workspace=@chips/api`
+  - **Verification**: All tests pass (21/21) ✓
+
+- [x] Add test scripts to package.json
+  - Add `test`, `test:watch`, `test:coverage` scripts
+  - **Verification**: Scripts work correctly ✓
+
+- [x] Configure Prisma logging for clean test output
+  - Suppress query logs during tests (NODE_ENV=test)
+  - **Verification**: Tests run without verbose console output ✓
 
 ---
 
