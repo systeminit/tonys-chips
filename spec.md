@@ -1,6 +1,57 @@
 # Application Description
 
-A web storefront for "Tony's world of chips". It sells various brands of potato chips. The front page is a list of chips, which you can add to your cart. It will have a web frontend, an API layer, and the API layer talks to a postgres database. Write it in typescript.
+A web storefront for "Tony's world of chips". It sells various brands of potato chips.
+
+## Overview
+The application consists of three tiers:
+- **Web Frontend**: React-based single-page application
+- **API Layer**: RESTful API built with Express.js
+- **Database**: PostgreSQL database for data persistence
+
+All components are written in TypeScript.
+
+## Frontend Stack
+- **Framework**: React 18 with Vite for build tooling
+- **Routing**: React Router v6
+- **Styling**: TailwindCSS
+- **HTTP Client**: Axios
+- **State Management**: React Context API (or Zustand for more complex state)
+- **Build Output**: Static files served via nginx in Docker container
+
+## API Stack
+- **Framework**: Express.js with TypeScript
+- **Database Client**: Prisma ORM for type-safe database access
+- **Validation**: Zod for request validation
+- **CORS**: cors middleware for cross-origin requests
+- **Environment Config**: dotenv for configuration management
+
+## Data Models
+- **Products**: id, name, brand, description, price, imageUrl, stockQuantity
+- **CartItems**: id, productId, quantity, sessionId
+- **Orders**: id, sessionId, items (JSON), totalAmount, createdAt, status
+
+## Key Features
+- **Product Catalog**: Browse available chip brands with images, descriptions, and prices
+- **Shopping Cart**: Add/remove items, update quantities, view cart total
+- **Session Management**: Cart persistence using session identifiers
+- **Checkout**: Convert cart to order (stub only - no payment processing)
+- **Inventory Display**: Show stock availability for each product
+
+## API Endpoints
+- `GET /api/products` - List all products
+- `GET /api/products/:id` - Get product details
+- `POST /api/cart/items` - Add item to cart
+- `GET /api/cart/:sessionId` - Get cart contents
+- `PUT /api/cart/items/:id` - Update cart item quantity
+- `DELETE /api/cart/items/:id` - Remove cart item
+- `POST /api/orders` - Create order from cart
+
+## User Workflow
+1. User visits homepage and sees grid of chip products
+2. User clicks on product to view details
+3. User adds items to cart (stored by session ID)
+4. User views cart and adjusts quantities
+5. User proceeds to checkout (creates order record - no payment required)
 
 # Deployment Specification
 
