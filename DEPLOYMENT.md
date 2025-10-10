@@ -237,7 +237,8 @@ Example: `20250109143022-a7b3c5d`
      - Execution role: ecs-task-execution-role
      - Task role: ecs-task-role-web
      - Container: tonys-chips-web
-       - Image: nginx:latest (placeholder, will be updated with actual ECR image)
+       - Image: Uses String Template subscribed to ECR repository URI
+       - Current tag: 20251010031728-16f594d
        - Port: 80
        - Logs: CloudWatch (/ecs/tonys-chips-web)
 
@@ -250,9 +251,19 @@ Example: `20250109143022-a7b3c5d`
      - Execution role: ecs-task-execution-role
      - Task role: ecs-task-role-api
      - Container: tonys-chips-api
-       - Image: nginx:latest (placeholder, will be updated with actual ECR image)
+       - Image: Uses String Template subscribed to ECR repository URI
+       - Current tag: 20251010031728-16f594d
        - Port: 3000
        - Logs: CloudWatch (/ecs/tonys-chips-api)
+       - Environment variables:
+         - DB_SECRET_ARN: RDS secret ARN in Secrets Manager
+         - DB_HOST: Subscribed to RDS endpoint
+         - DB_PORT: Subscribed to RDS port
+         - DB_NAME: postgres
+         - DB_USER: postgres
+         - AWS_REGION: us-west-1
+         - PORT: 3000
+         - NODE_ENV: production
 
 3. ✅ ECS Services:
    - `tonys-chips-web-service` (AWS::ECS::Service)
@@ -273,9 +284,54 @@ Example: `20250109143022-a7b3c5d`
      - Load balancer: tonys-chips-api-tg (internal ALB)
      - Public IP: Disabled
 
-**Status:** All components created and qualifications passed.
+4. ✅ IAM Policies for API:
+   - `api-secrets-manager-policy` (AWS::IAM::ManagedPolicy)
+     - Policy name: tonys-chips-api-secrets-manager-policy
+     - Permissions: secretsmanager:GetSecretValue on RDS secret
+     - Attached to: ecs-task-role-api (via AWS::IAM::RolePolicy)
 
-**Note:** Task definitions currently use placeholder nginx:latest images. These should be updated to use actual application images from ECR repositories (tonys-chips-web:tag and tonys-chips-api:tag) once containers are built and pushed.
+**Status:** Applied to HEAD. All resources created successfully.
+
+### Phase 7: VPC Endpoints ✅ COMPLETED
+**Change Set:** `tonys-chips-vpc-endpoints` (ID: 01K762M1Y3SWX3222KE01J9PYD)
+
+**Components Created:**
+1. ✅ `sg-vpc-endpoints` (AWS::EC2::SecurityGroup)
+   - Group name: tonys-chips-vpc-endpoints-sg
+   - Ingress: HTTPS (443) from VPC CIDR (10.0.0.0/16)
+
+2. ✅ VPC Endpoints (Interface):
+   - `vpce-ecr-api` - ECR API endpoint (com.amazonaws.us-west-1.ecr.api)
+   - `vpce-ecr-dkr` - ECR Docker endpoint (com.amazonaws.us-west-1.ecr.dkr)
+   - `vpce-secretsmanager` - Secrets Manager endpoint (com.amazonaws.us-west-1.secretsmanager)
+   - `vpce-logs` - CloudWatch Logs endpoint (com.amazonaws.us-west-1.logs)
+   - All interface endpoints:
+     - Deployed in all subnets (web-1a, web-1b, api-1a, api-1b)
+     - Security group: sg-vpc-endpoints
+     - Private DNS enabled
+
+3. ✅ VPC Endpoint (Gateway):
+   - `vpce-s3` - S3 gateway endpoint (com.amazonaws.us-west-1.s3)
+   - Associated with: tonys-chips-rtb-private
+   - Required for ECR layer storage
+
+**Status:** Applied to HEAD. All resources created successfully.
+
+**Purpose:**
+VPC endpoints allow ECS tasks in private subnets to access AWS services (ECR, Secrets Manager, CloudWatch Logs, S3) without requiring a NAT Gateway or internet gateway. This provides:
+- Secure, private connectivity to AWS services
+- Lower cost compared to NAT Gateway (~$35-50/month vs ~$32/month + data transfer)
+- No exposure to internet for pulling container images or accessing secrets
+
+**Database Configuration:**
+The API application fetches the database password from AWS Secrets Manager at runtime using the AWS SDK. The application code:
+- Reads DB_SECRET_ARN environment variable
+- Calls Secrets Manager GetSecretValue API
+- Constructs DATABASE_URL from environment variables and fetched password
+- Initializes Prisma client asynchronously before starting the server
+
+**Image Tags:**
+Task definitions use String Templates that dynamically construct image URIs from ECR repository URIs and specified tags. Current images: `20251010031728-16f594d`
 
 ## Configuration Management
 
@@ -285,16 +341,22 @@ Example: `20250109143022-a7b3c5d`
 - `VITE_API_URL`: Internal ALB DNS name (e.g., http://internal-api-alb.us-east-1.elb.amazonaws.com)
 
 **API Container:**
-- `DATABASE_URL`: PostgreSQL connection string from RDS
+- `DB_SECRET_ARN`: ARN of RDS secret in Secrets Manager
+- `DB_HOST`: RDS endpoint address (subscribed from RDS instance)
+- `DB_PORT`: RDS port (subscribed from RDS instance)
+- `DB_NAME`: postgres
+- `DB_USER`: postgres
+- `AWS_REGION`: us-west-1
 - `NODE_ENV`: production
 - `PORT`: 3000
 
 ### Secrets Management
-Use AWS Secrets Manager for:
-- RDS master password
-- Any API keys or sensitive configuration
+The API application uses AWS Secrets Manager SDK to fetch the database password at runtime. The task role (`ecs-task-role-api`) has `secretsmanager:GetSecretValue` permission for the RDS secret.
 
-Reference secrets in ECS task definitions using `secrets` parameter instead of `environment`.
+Application code structure:
+- `/packages/api/src/config/secrets.ts`: Fetches password from Secrets Manager
+- `/packages/api/src/config/database.ts`: Constructs DATABASE_URL and initializes Prisma
+- `/packages/api/src/index.ts`: Async startup to initialize database before starting server
 
 ## Deployment Workflow
 

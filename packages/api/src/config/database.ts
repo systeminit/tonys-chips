@@ -27,24 +27,24 @@ export async function getPrismaClient(): Promise<PrismaClient> {
   return prismaInstance;
 }
 
-// For synchronous access (local dev and tests where DATABASE_URL is set)
-// In production with Secrets Manager, use getPrismaClient() instead
-function createPrismaClient(): PrismaClient {
-  if (prismaInstance) {
-    return prismaInstance;
-  }
+// Lazy initialization proxy for synchronous access
+// This allows routes to import prisma, but actual initialization is deferred
+const prismaProxy = new Proxy({} as PrismaClient, {
+  get(target, prop) {
+    if (!prismaInstance) {
+      // Try to initialize synchronously if DATABASE_URL is available
+      if (process.env.DATABASE_URL) {
+        prismaInstance = new PrismaClient({
+          log: process.env.NODE_ENV === 'test' ? ['error'] : ['warn', 'error'],
+        });
+      } else {
+        throw new Error(
+          'Prisma client not initialized. Call getPrismaClient() before starting the server.'
+        );
+      }
+    }
+    return prismaInstance[prop as keyof PrismaClient];
+  },
+});
 
-  if (!process.env.DATABASE_URL) {
-    throw new Error(
-      'DATABASE_URL is not set. For production with AWS Secrets Manager, initialize with getPrismaClient() first.'
-    );
-  }
-
-  prismaInstance = new PrismaClient({
-    log: process.env.NODE_ENV === 'test' ? ['error'] : ['warn', 'error'],
-  });
-
-  return prismaInstance;
-}
-
-export default createPrismaClient();
+export default prismaProxy;
