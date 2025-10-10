@@ -42,11 +42,14 @@ services:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
-      args:
-        VITE_API_URL: http://localhost:3000
     container_name: tonys-chips-web
+    environment:
+      API_URL: http://api:3000
+      PORT: 3001
+      NODE_ENV: production
+      SESSION_SECRET: tonys-chips-production-secret-change-me
     ports:
-      - "8080:80"
+      - "8080:3001"
     depends_on:
       - api
     networks:

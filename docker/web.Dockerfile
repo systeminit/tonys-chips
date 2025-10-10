@@ -1,7 +1,13 @@
-# Stage 1: Build React app
-FROM node:20-slim AS builder
+# Express web server
+FROM node:20-slim
 
 WORKDIR /app
+
+# Copy root tsconfig.json (needed for extends)
+COPY tsconfig.json /app/
+
+# Create packages directory structure
+WORKDIR /app/packages/web
 
 # Copy package files
 COPY packages/web/package*.json ./
@@ -9,27 +15,14 @@ COPY packages/web/package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy source code
+# Copy source code and views
 COPY packages/web/ ./
 
-# Set API URL for production build
-ARG VITE_API_URL=http://localhost:3000
-ENV VITE_API_URL=$VITE_API_URL
-
-# Build the app
+# Build TypeScript
 RUN npm run build
 
-# Stage 2: Serve with nginx
-FROM nginx:alpine
+# Expose port
+EXPOSE 3001
 
-# Copy custom nginx configuration
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy build output from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Expose port 80
-EXPOSE 80
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start the Express server
+CMD ["npm", "start"]
