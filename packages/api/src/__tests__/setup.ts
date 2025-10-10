@@ -21,3 +21,6 @@ beforeEach(async () => {
   await prisma.cartItem.deleteMany();
   await prisma.order.deleteMany();
 });
+
+// Export for use in tests
+export { prisma };
