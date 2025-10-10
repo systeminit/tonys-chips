@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { Product } from '../types/index.ts';
 import { getProduct } from '../services/productService.ts';
-import { useCart } from '../context/CartContext.tsx';
+import { useCart } from '../hooks/useCart';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();

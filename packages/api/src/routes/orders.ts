@@ -25,12 +25,12 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     // Calculate total amount
-    const totalAmount = cartItems.reduce((total, item) => {
+    const totalAmount = cartItems.reduce((total: number, item: typeof cartItems[0]) => {
       return total + (item.product.price * item.quantity);
     }, 0);
 
     // Prepare order items as JSON
-    const orderItems = cartItems.map(item => ({
+    const orderItems = cartItems.map((item: typeof cartItems[0]) => ({
       productId: item.productId,
       productName: item.product.name,
       brand: item.product.brand,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext.tsx';
+import { useCart } from '../hooks/useCart';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -9,7 +9,7 @@ const CheckoutPage: React.FC = () => {
   const [orderComplete, setOrderComplete] = useState(false);
 
   const total = cart.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum: number, item) => sum + item.product.price * item.quantity,
     0
   );
 
@@ -64,7 +64,7 @@ const CheckoutPage: React.FC = () => {
     );
   }
 
-  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const itemCount = cart.reduce((sum: number, item) => sum + item.quantity, 0);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -105,7 +105,7 @@ const CheckoutPage: React.FC = () => {
               <h2 className="text-lg font-bold">3. Review Items</h2>
             </div>
             <div className="p-4 space-y-4">
-              {cart.map((item) => (
+              {cart.map((item: typeof cart[0]) => (
                 <div key={item.id} className="flex gap-4">
                   <div className="w-20 h-20 flex-shrink-0">
                     <img

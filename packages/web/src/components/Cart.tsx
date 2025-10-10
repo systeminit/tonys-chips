@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext.tsx';
+import { useCart } from '../hooks/useCart';
 import CartItem from './CartItem.tsx';
 
 const Cart: React.FC = () => {
   const { cart, loading } = useCart();
 
   const total = cart.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum: number, item) => sum + item.product.price * item.quantity,
     0
   );
 
@@ -33,7 +33,7 @@ const Cart: React.FC = () => {
     );
   }
 
-  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const itemCount = cart.reduce((sum: number, item) => sum + item.quantity, 0);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -47,7 +47,7 @@ const Cart: React.FC = () => {
             </p>
           </div>
           <div className="divide-y divide-gray-200">
-            {cart.map((item) => (
+            {cart.map((item: typeof cart[0]) => (
               <CartItem key={item.id} item={item} />
             ))}
           </div>
