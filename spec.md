@@ -61,9 +61,7 @@ The web application and the API layer should be packaged into docker containers.
 
 They should be tagged with a the data and the gitsha as a single version tag every time they are produced - YYYYMMDDHHMMSS-gitsha.
 
-The containers should deploy to AWS ECS.
-
-Those containers get deployed to the latest version of amazon linux.
+The containers should deploy to AWS ECS with an ECR registry from a github action on every merge to main.
 
 The API layer needs to be configured to talk to a remote postres databse using RDS.
 
@@ -71,12 +69,11 @@ The Web app should be behidn a public load balancer (and in a private subnet).
 
 The API should be behind an internal load balancer (and in a private subnet).
 
-The databsae layer should have its own subnet.
+It should be in its own VPC. Each alyer should have its own subnets. They should all be private.
+
+Tehre should be load balancers between the web and api layers.
 
 The web app should be able to route to the API, but not the database layer.
 
-It should be in its own VPC.
-
 It should include security groups and IAM policies as needed.
-
 
