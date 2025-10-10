@@ -1,6 +1,6 @@
 import React from 'react';
 import type { CartItem as CartItemType } from '../types/index.ts';
-import { useCart } from '../context/CartContext.tsx';
+import { useCart } from '../hooks/useCart';
 
 interface CartItemProps {
   item: CartItemType;

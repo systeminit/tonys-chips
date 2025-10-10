@@ -1,23 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { CartItem } from '../types/index.ts';
 import * as cartService from '../services/cartService.ts';
 import * as orderService from '../services/orderService.ts';
-
-interface CartContextType {
-  cart: CartItem[];
-  sessionId: string;
-  loading: boolean;
-  error: string | null;
-  fetchCart: () => Promise<void>;
-  addToCart: (productId: string, quantity: number) => Promise<void>;
-  updateCartItem: (id: string, quantity: number) => Promise<void>;
-  removeFromCart: (id: string) => Promise<void>;
-  checkout: () => Promise<void>;
-  clearError: () => void;
-}
-
-const CartContext = createContext<CartContextType | undefined>(undefined);
+import { CartContext } from './CartContextType';
 
 const generateSessionId = (): string => {
   let sessionId = localStorage.getItem('sessionId');
@@ -38,7 +24,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -50,7 +36,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionId]);
 
   const addToCart = async (productId: string, quantity: number) => {
     try {
@@ -118,7 +104,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   useEffect(() => {
     fetchCart();
-  }, [sessionId]);
+  }, [sessionId, fetchCart]);
 
   return (
     <CartContext.Provider
@@ -140,10 +126,3 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   );
 };
 
-export const useCart = (): CartContextType => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};

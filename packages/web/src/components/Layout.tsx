@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { useCart } from '../context/CartContext.tsx';
+import { useCart } from '../hooks/useCart';
 
 const Layout: React.FC = () => {
   const { cart } = useCart();
