@@ -8,7 +8,7 @@ import { CartContext } from './CartContextType';
 const generateSessionId = (): string => {
   let sessionId = localStorage.getItem('sessionId');
   if (!sessionId) {
-    sessionId = crypto.randomUUID();
+    sessionId = window.crypto.randomUUID();
     localStorage.setItem('sessionId', sessionId);
   }
   return sessionId;

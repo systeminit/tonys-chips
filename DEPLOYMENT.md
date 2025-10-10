@@ -71,12 +71,23 @@ Example: `20250109143022-a7b3c5d`
    - `tonys-chips-subnet-db-1a` - 10.0.21.0/24 (us-west-1a)
    - `tonys-chips-subnet-db-1b` - 10.0.22.0/24 (us-west-1c)
 
-5. ✅ `tonys-chips-rtb-private` (AWS::EC2::RouteTable)
+5. ✅ Route Tables:
+   - `tonys-chips-rtb-private` (AWS::EC2::RouteTable) - For API and database subnets
+   - `tonys-chips-rtb-public` (AWS::EC2::RouteTable) - For web subnets with IGW route
 
-6. ✅ Route Table Associations (6 total):
-   - All subnets associated with private route table
+6. ✅ Route Table Associations:
+   - Web subnets (web-1a, web-1b) associated with public route table
+   - API subnets (api-1a, api-1b) associated with private route table
+   - Database subnets (db-1a, db-1b) associated with private route table
+
+7. ✅ `tonys-chips-route-public-igw` (AWS::EC2::Route)
+   - Destination: 0.0.0.0/0
+   - Target: Internet Gateway
+   - Allows public ALB to receive internet traffic
 
 **Status:** Applied to HEAD. All resources created successfully.
+
+**Note:** Web subnets are public (MapPublicIpOnLaunch: true, route to IGW) to support the internet-facing ALB. API and database subnets remain private with no internet access (use VPC endpoints).
 
 ### Phase 2: Security Infrastructure ✅ COMPLETED
 **Change Set:** `tonys-chips-security` (ID: 01K75SVYVVKKRPQFWXVZ6BME12)
