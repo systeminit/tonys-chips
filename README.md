@@ -23,16 +23,6 @@ This project is organized as a monorepo with the following structure:
 - **CI/CD**: GitHub Actions
 - **Testing**: Jest, Supertest
 
-## System Initiative Integration
-
-This application is designed to demonstrate System Initiative's capabilities:
-
-1. **Infrastructure as Code**: Automated provisioning of AWS ECS, RDS, and networking components
-2. **Container Orchestration**: Docker images built and deployed automatically
-3. **Database Management**: Prisma migrations applied through CI/CD pipeline
-4. **Environment Configuration**: Automated configuration management across environments
-5. **Deployment Automation**: Seamless deployment to AWS infrastructure
-
 ## Getting Started
 
 ### Prerequisites
