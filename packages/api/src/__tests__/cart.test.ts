@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import cartRoutes from '../routes/cart';
 import { errorHandler } from '../middleware/errorHandler';
-import prisma from '../config/database';
+import { prisma } from './setup';
 
 // Create test app
 const app = express();

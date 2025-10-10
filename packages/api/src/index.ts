@@ -5,6 +5,7 @@ import { errorHandler } from './middleware/errorHandler';
 import productRoutes from './routes/products';
 import cartRoutes from './routes/cart';
 import orderRoutes from './routes/orders';
+import { getPrismaClient } from './config/database';
 
 dotenv.config();
 
@@ -28,7 +29,21 @@ app.use('/api/orders', orderRoutes);
 // Error handler (must be last)
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+// Initialize database and start server
+async function start() {
+  try {
+    // Initialize Prisma client (this will fetch secrets if needed)
+    await getPrismaClient();
+    console.log('Database connection initialized');
+
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`Server listening on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+start();

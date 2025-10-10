@@ -4,7 +4,7 @@ import cors from 'cors';
 import orderRoutes from '../routes/orders';
 import cartRoutes from '../routes/cart';
 import { errorHandler } from '../middleware/errorHandler';
-import prisma from '../config/database';
+import { prisma } from './setup';
 
 // Create test app with both cart and order routes
 const app = express();
