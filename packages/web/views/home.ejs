@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+
+<h1>Welcome to Tony's World of Chips</h1>
+<p>Discover the finest selection of potato chips from around the world!</p>
+
+<div class="product-grid">
+  <% products.forEach(product => { %>
+    <div class="product-card">
+      <img src="<%= product.imageUrl %>" alt="<%= product.name %>">
+      <div class="product-card-content">
+        <h3><%= product.name %></h3>
+        <p class="brand"><%= product.brand %></p>
+        <p class="price">$<%= product.price.toFixed(2) %></p>
+        <p><%= product.description.substring(0, 100) %>...</p>
+        <a href="/products/<%= product.id %>" class="btn">View Details</a>
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+<%- include('partials/footer') %>

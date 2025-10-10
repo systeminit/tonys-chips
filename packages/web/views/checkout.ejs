@@ -1,0 +1,20 @@
+<%- include('partials/header') %>
+
+<div class="checkout-success">
+  <h1>✅ Order Placed Successfully!</h1>
+  <p>Thank you for your order!</p>
+
+  <div style="margin-top: 2rem; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;">
+    <h2>Order Details</h2>
+    <p><strong>Order ID:</strong> <%= order.id %></p>
+    <p><strong>Total Amount:</strong> $<%= order.totalAmount.toFixed(2) %></p>
+    <p><strong>Status:</strong> <%= order.status %></p>
+    <p><strong>Date:</strong> <%= new Date(order.createdAt).toLocaleString() %></p>
+  </div>
+
+  <div style="margin-top: 2rem;">
+    <a href="/" class="btn btn-success">Continue Shopping</a>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
