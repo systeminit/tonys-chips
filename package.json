@@ -10,11 +10,11 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "ci:calver": "tsx ci/main.ts calver",
-    "ci:check-postgres": "tsx ci/main.ts check-postgres",
-    "ci:build": "tsx ci/main.ts build",
-    "ci:publish": "tsx ci/main.ts publish",
-    "ci:push-image": "tsx ci/main.ts push-image"
+    "ci:calver": "npx tsx ci/main.ts calver",
+    "ci:check-postgres": "npx tsx ci/main.ts check-postgres",
+    "ci:build": "npx tsx ci/main.ts build",
+    "ci:publish": "npx tsx ci/main.ts publish",
+    "ci:push-image": "npx tsx ci/main.ts push-image"
   },
   "keywords": [],
   "author": "support@systeminit.com",
