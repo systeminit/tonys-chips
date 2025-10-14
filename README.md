@@ -4,21 +4,21 @@ A demo e-commerce application showcasing the full lifecycle of automated softwar
 
 ## Overview
 
-Tony's World of Chips is a full-stack TypeScript application that demonstrates how System Initiative can automate the entire software development lifecycle - from infrastructure provisioning to application deployment. This sample app implements a complete online store for purchasing potato chips, featuring a React frontend, Express.js backend, and PostgreSQL database.
+Tony's World of Chips is a full-stack TypeScript application that demonstrates how System Initiative can automate the entire software development lifecycle - from infrastructure provisioning to application deployment. This sample app implements a complete online store for purchasing potato chips, featuring an Express.js server-side rendered frontend with EJS templates, Express.js REST API backend, and PostgreSQL database.
 
 ## Architecture
 
 This project is organized as a monorepo with the following structure:
 
 - **`packages/api/`** - Express.js REST API with Prisma ORM
-- **`packages/web/`** - React SPA built with Vite
+- **`packages/web/`** - Express.js server-side rendered frontend with EJS templates
 - **`docker/`** - Dockerfiles for containerized deployment
 - **`.github/workflows/`** - CI/CD automation with GitHub Actions
 
 ### Technology Stack
 
-- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, React Router
-- **Backend**: Express.js 5, Prisma ORM, PostgreSQL
+- **Frontend**: Express.js, EJS templates, TypeScript, Tailwind CSS
+- **Backend**: Express.js, Prisma ORM, PostgreSQL
 - **Infrastructure**: Docker, Docker Compose, nginx
 - **CI/CD**: GitHub Actions
 - **Testing**: Jest, Supertest
@@ -46,7 +46,7 @@ This project is organized as a monorepo with the following structure:
    ```
 
 3. **Access the application**
-   - Web UI: http://localhost:8080
+   - Web UI: http://localhost:8080 (Express server with EJS templates)
    - API: http://localhost:3000/api
 
 4. **Stop the application**
@@ -73,7 +73,7 @@ docker-compose logs web
 npm run docker:down
 ```
 
-The database is automatically migrated and seeded with sample products on startup.
+The database is automatically migrated and seeded with sample products on startup. The web service runs on port 8080 (mapped from container port 3001).
 
 #### Option 2: Native Development
 
@@ -112,13 +112,15 @@ cd packages/web
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env and set VITE_API_URL=http://localhost:3000
+# Edit .env and set API_URL=http://localhost:3000
 
 # Start the development server
 npm run dev
 ```
 
-The web UI will run on http://localhost:5173
+The web UI will run on http://localhost:3001
+
+**Note:** When running with Docker, the web UI is accessible on port 8080. When running locally for development, it runs on port 3001.
 
 ### Using the Application
 
@@ -160,9 +162,9 @@ npx prisma generate            # Regenerate Prisma Client
 
 #### Web Commands (packages/web/)
 ```bash
-npm run dev                    # Start Vite dev server
-npm run build                  # Build for production
-npm run preview                # Preview production build
+npm run dev                    # Start Express dev server with hot reload
+npm run build                  # Build TypeScript to JavaScript
+npm start                      # Run production build
 npm run lint                   # Run ESLint
 ```
 
@@ -218,7 +220,7 @@ npx prisma studio
 ```bash
 # Check what's running on a port
 lsof -i :3000    # API port
-lsof -i :5173    # Web dev port
+lsof -i :3001    # Web dev port
 lsof -i :8080    # Web production port
 
 # Kill process using port
