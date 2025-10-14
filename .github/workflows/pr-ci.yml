@@ -43,16 +43,16 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
       - name: Generate image tag
         id: tag
         run: |
           TAG=$(deno task ci calver | tail -n 1)
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
 
       #- name: Configure AWS credentials
       #  uses: aws-actions/configure-aws-credentials@v4
