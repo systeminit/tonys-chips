@@ -1,11 +1,10 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 /**
  * Centralized CI orchestration entry point
- * Usage: chips-ci <command> [args...]
+ * Usage: tsx ci/main.ts <command> [args...]
  */
 
-import { execSync } from 'child_process';
 import { calver } from './commands/calver.js';
 import { checkPostgres } from './commands/check-postgres.js';
 import { build } from './commands/build.js';
@@ -55,7 +54,7 @@ const commands: Command[] = [
 function showHelp() {
   console.log("🚀 Tony's Chips CI Orchestration Tool");
   console.log("");
-  console.log("Usage: chips-ci <command> [args...]");
+  console.log("Usage: tsx ci/main.ts <command> [args...]");
   console.log("");
   console.log("Available commands:");
   
@@ -66,9 +65,9 @@ function showHelp() {
   }
   
   console.log("Examples:");
-  console.log("  chips-ci calver");
-  console.log("  chips-ci check-postgres local 60");
-  console.log("  chips-ci push-image sandbox 20231201120000-abc1234");
+  console.log("  tsx ci/main.ts calver");
+  console.log("  tsx ci/main.ts check-postgres local 60");
+  console.log("  tsx ci/main.ts push-image sandbox 20231201120000-abc1234");
   console.log("");
 }
 
@@ -108,6 +107,4 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  await main();
-}
+await main();
