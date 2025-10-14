@@ -43,11 +43,6 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
-
       - name: Generate image tag
         id: tag
         run: |
@@ -62,3 +57,9 @@ jobs:
 
       - name: Build and push images
         run: npm run ci:push-image --silent sandbox ${{ steps.tag.outputs.tag }}
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          ECR_API_REPO: ${{ vars.ECR_API_REPO }}
+          ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
