@@ -9,7 +9,12 @@
     "docker:up": "docker-compose up --build",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "ci:calver": "npm run start --workspace=@chips/ci calver",
+    "ci:check-postgres": "npm run start --workspace=@chips/ci check-postgres",
+    "ci:build": "npm run start --workspace=@chips/ci build",
+    "ci:publish": "npm run start --workspace=@chips/ci publish",
+    "ci:push-image": "npm run start --workspace=@chips/ci push-image"
   },
   "keywords": [],
   "author": "support@systeminit.com",

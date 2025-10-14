@@ -2,38 +2,31 @@
  * Generate CALVER tag command implementation
  */
 
-async function runCommand(command: string[], description: string): Promise<string> {
-  const process = new Deno.Command(command[0], {
-    args: command.slice(1),
-    stdout: "piped",
-    stderr: "piped",
-  });
-  
-  const { code, stdout, stderr } = await process.output();
-  
-  if (code !== 0) {
+import { execSync } from 'child_process';
+
+function runCommand(command: string, description: string): string {
+  try {
+    return execSync(command, { encoding: 'utf8' }).trim();
+  } catch (error) {
     console.error(`❌ Failed: ${description}`);
-    console.error("STDOUT:", new TextDecoder().decode(stdout));
-    console.error("STDERR:", new TextDecoder().decode(stderr));
+    console.error((error as Error).message);
     throw new Error(`Command failed: ${description}`);
   }
-  
-  return new TextDecoder().decode(stdout).trim();
 }
 
 export async function calver(args: string[]): Promise<void> {
   console.log("🏷️  Generating CALVER tag");
   
   // Get commit timestamp
-  const commitTime = await runCommand(
-    ["git", "show", "-s", "--format=%ci", "HEAD"],
-    "Getting commit timestamp"
+  const commitTime = runCommand(
+    'git show -s --format=%ci HEAD',
+    'Getting commit timestamp'
   );
   
   // Get commit SHA
-  const commitSha = await runCommand(
-    ["git", "rev-parse", "--short", "HEAD"],
-    "Getting commit SHA"
+  const commitSha = runCommand(
+    'git rev-parse --short HEAD',
+    'Getting commit SHA'
   );
   
   // Format timestamp: YYYY-MM-DD HH:MM:SS +TIMEZONE -> YYYYMMDD.HHMMSS

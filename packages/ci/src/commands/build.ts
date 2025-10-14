@@ -2,32 +2,25 @@
  * Build command implementation
  */
 
+import { execSync } from 'child_process';
+
 interface Config {
   environment: string;
   tag: string;
   viteApiUrl: string;
 }
 
-async function runCommand(command: string[], description: string): Promise<void> {
+function runCommand(command: string, description: string): void {
   console.log(`🔧 ${description}`);
-  console.log(`   Command: ${command.join(' ')}`);
+  console.log(`   Command: ${command}`);
   
-  const process = new Deno.Command(command[0], {
-    args: command.slice(1),
-    stdout: "piped",
-    stderr: "piped",
-  });
-  
-  const { code, stdout, stderr } = await process.output();
-  
-  if (code !== 0) {
+  try {
+    execSync(command, { stdio: 'inherit' });
+    console.log(`✅ Success: ${description}`);
+  } catch (error) {
     console.error(`❌ Failed: ${description}`);
-    console.error("STDOUT:", new TextDecoder().decode(stdout));
-    console.error("STDERR:", new TextDecoder().decode(stderr));
     throw new Error(`Command failed: ${description}`);
   }
-  
-  console.log(`✅ Success: ${description}`);
 }
 
 function parseConfig(args: string[]): Config {
@@ -37,14 +30,14 @@ function parseConfig(args: string[]): Config {
   
   const environment = args[0];
   const tag = args[1];
-  const viteApiUrl = Deno.env.get("VITE_API_URL") || "http://localhost:3000";
+  const viteApiUrl = process.env.VITE_API_URL || "http://localhost:3000";
   
   return { environment, tag, viteApiUrl };
 }
 
 async function buildDockerImages(config: Config): Promise<void> {
-  const region = Deno.env.get("AWS_REGION") || "us-west-2";
-  const accountId = Deno.env.get("AWS_ACCOUNT_ID");
+  const region = process.env.AWS_REGION || "us-west-2";
+  const accountId = process.env.AWS_ACCOUNT_ID;
   
   if (!accountId) {
     throw new Error("AWS_ACCOUNT_ID environment variable not found. Make sure AWS credentials are configured.");
@@ -55,30 +48,24 @@ async function buildDockerImages(config: Config): Promise<void> {
   const webImage = `${ecrRegistry}/tonys-chips-web`;
   
   // Build API image
-  await runCommand(
-    ["docker", "build", "-f", "docker/api.Dockerfile", "-t", `${apiImage}:${config.tag}`, "."],
+  runCommand(
+    `docker build -f docker/api.Dockerfile -t ${apiImage}:${config.tag} .`,
     "Building API Docker image"
   );
   
-  await runCommand(
-    ["docker", "tag", `${apiImage}:${config.tag}`, `${apiImage}:latest`],
+  runCommand(
+    `docker tag ${apiImage}:${config.tag} ${apiImage}:latest`,
     "Tagging API image as latest"
   );
   
   // Build Web image
-  await runCommand(
-    [
-      "docker", "build", 
-      "-f", "docker/web.Dockerfile",
-      "--build-arg", `VITE_API_URL=${config.viteApiUrl}`,
-      "-t", `${webImage}:${config.tag}`,
-      "."
-    ],
+  runCommand(
+    `docker build -f docker/web.Dockerfile --build-arg VITE_API_URL=${config.viteApiUrl} -t ${webImage}:${config.tag} .`,
     "Building Web Docker image"
   );
   
-  await runCommand(
-    ["docker", "tag", `${webImage}:${config.tag}`, `${webImage}:latest`],
+  runCommand(
+    `docker tag ${webImage}:${config.tag} ${webImage}:latest`,
     "Tagging Web image as latest"
   );
   
