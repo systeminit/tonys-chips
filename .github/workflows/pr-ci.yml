@@ -54,11 +54,11 @@ jobs:
         with:
           deno-version: v1.x
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+      #- name: Configure AWS credentials
+      #  uses: aws-actions/configure-aws-credentials@v4
+      #  with:
+      #    role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+      #    aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Build and push images
-        run: deno task ci push-image sandbox ${{ steps.tag.outputs.tag }}
+      #- name: Build and push images
+      #  run: deno task ci push-image sandbox ${{ steps.tag.outputs.tag }}
