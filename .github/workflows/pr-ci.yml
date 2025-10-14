@@ -51,7 +51,7 @@ jobs:
       - name: Generate image tag
         id: tag
         run: |
-          TAG=$(deno task ci calver | tail -n 1)
+          TAG=$(npm run ci:calver --silent | tail -n 1)
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       #- name: Configure AWS credentials
@@ -61,4 +61,4 @@ jobs:
       #    aws-region: ${{ vars.AWS_REGION }}
 
       #- name: Build and push images
-      #  run: deno task ci push-image sandbox ${{ steps.tag.outputs.tag }}
+      #  run: npm run ci:push-image --silent sandbox ${{ steps.tag.outputs.tag }}

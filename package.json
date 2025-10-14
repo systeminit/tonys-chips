@@ -9,10 +9,20 @@
     "docker:up": "docker-compose up --build",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "ci:calver": "npx tsx ci/main.ts calver",
+    "ci:check-postgres": "npx tsx ci/main.ts check-postgres",
+    "ci:build": "npx tsx ci/main.ts build",
+    "ci:publish": "npx tsx ci/main.ts publish",
+    "ci:push-image": "npx tsx ci/main.ts push-image"
   },
   "keywords": [],
   "author": "support@systeminit.com",
   "license": "Apache-2.0",
-  "description": "Tony's World of Chips - E-commerce storefront"
+  "description": "Tony's World of Chips - E-commerce storefront",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
 }

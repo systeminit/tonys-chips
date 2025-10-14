@@ -2,6 +2,8 @@
  * Publish command implementation
  */
 
+import { execSync } from 'child_process';
+
 interface Config {
   environment: string;
   tag: string;
@@ -10,26 +12,17 @@ interface Config {
   accountId: string;
 }
 
-async function runCommand(command: string[], description: string): Promise<void> {
+function runCommand(command: string, description: string): void {
   console.log(`🔧 ${description}`);
-  console.log(`   Command: ${command.join(' ')}`);
+  console.log(`   Command: ${command}`);
   
-  const process = new Deno.Command(command[0], {
-    args: command.slice(1),
-    stdout: "piped",
-    stderr: "piped",
-  });
-  
-  const { code, stdout, stderr } = await process.output();
-  
-  if (code !== 0) {
+  try {
+    execSync(command, { stdio: 'inherit' });
+    console.log(`✅ Success: ${description}`);
+  } catch (error) {
     console.error(`❌ Failed: ${description}`);
-    console.error("STDOUT:", new TextDecoder().decode(stdout));
-    console.error("STDERR:", new TextDecoder().decode(stderr));
     throw new Error(`Command failed: ${description}`);
   }
-  
-  console.log(`✅ Success: ${description}`);
 }
 
 function parseConfig(args: string[]): Config {
@@ -39,9 +32,9 @@ function parseConfig(args: string[]): Config {
   
   const environment = args[0];
   const tag = args[1];
-  const region = Deno.env.get("AWS_REGION") || "us-west-2";
+  const region = process.env.AWS_REGION || "us-west-2";
   
-  const accountId = Deno.env.get("AWS_ACCOUNT_ID");
+  const accountId = process.env.AWS_ACCOUNT_ID;
   if (!accountId) {
     throw new Error("AWS_ACCOUNT_ID environment variable not found. Make sure AWS credentials are configured.");
   }
@@ -52,47 +45,10 @@ function parseConfig(args: string[]): Config {
 }
 
 async function loginToECR(config: Config): Promise<void> {
-  // Get ECR login token
-  const loginProcess = new Deno.Command("aws", {
-    args: ["ecr", "get-login-password", "--region", config.region],
-    stdout: "piped",
-    stderr: "piped",
-  });
+  // Get ECR login token and login to Docker registry
+  const loginCommand = `aws ecr get-login-password --region ${config.region} | docker login --username AWS --password-stdin ${config.ecrRegistry}`;
   
-  const { code, stdout, stderr } = await loginProcess.output();
-  
-  if (code !== 0) {
-    console.error("Failed to get ECR login token");
-    console.error("STDERR:", new TextDecoder().decode(stderr));
-    throw new Error("ECR login failed");
-  }
-  
-  const loginToken = new TextDecoder().decode(stdout).trim();
-  
-  // Login to Docker registry
-  const dockerProcess = new Deno.Command("docker", {
-    args: ["login", "--username", "AWS", "--password-stdin", config.ecrRegistry],
-    stdin: "piped",
-    stdout: "piped",
-    stderr: "piped",
-  });
-  
-  const dockerCmd = dockerProcess.spawn();
-  
-  // Write password to stdin
-  const writer = dockerCmd.stdin.getWriter();
-  await writer.write(new TextEncoder().encode(loginToken));
-  await writer.close();
-  
-  const dockerResult = await dockerCmd.output();
-  
-  if (dockerResult.code !== 0) {
-    console.error("Docker login failed");
-    console.error("STDERR:", new TextDecoder().decode(dockerResult.stderr));
-    throw new Error("Docker ECR login failed");
-  }
-  
-  console.log("✅ Successfully logged into ECR");
+  runCommand(loginCommand, "Logging into ECR");
 }
 
 async function pushImages(config: Config): Promise<void> {
@@ -100,24 +56,24 @@ async function pushImages(config: Config): Promise<void> {
   const webImage = `${config.ecrRegistry}/tonys-chips-web`;
   
   // Push API images
-  await runCommand(
-    ["docker", "push", `${apiImage}:${config.tag}`],
+  runCommand(
+    `docker push ${apiImage}:${config.tag}`,
     "Pushing API image with tag"
   );
   
-  await runCommand(
-    ["docker", "push", `${apiImage}:latest`],
+  runCommand(
+    `docker push ${apiImage}:latest`,
     "Pushing API image as latest"
   );
   
   // Push Web images
-  await runCommand(
-    ["docker", "push", `${webImage}:${config.tag}`],
+  runCommand(
+    `docker push ${webImage}:${config.tag}`,
     "Pushing Web image with tag"
   );
   
-  await runCommand(
-    ["docker", "push", `${webImage}:latest`],
+  runCommand(
+    `docker push ${webImage}:latest`,
     "Pushing Web image as latest"
   );
   

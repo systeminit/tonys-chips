@@ -2,6 +2,8 @@
  * Check PostgreSQL readiness command implementation
  */
 
+import { execSync } from 'child_process';
+
 interface Config {
   environment: string;
   timeoutSeconds: number;
@@ -9,14 +11,10 @@ interface Config {
 
 async function checkPostgresLocal(): Promise<boolean> {
   try {
-    const process = new Deno.Command("docker", {
-      args: ["compose", "-f", "docker-compose.platform.yml", "exec", "-T", "postgres-test", "pg_isready"],
-      stdout: "piped",
-      stderr: "piped",
+    execSync('docker compose -f docker-compose.platform.yml exec -T postgres-test pg_isready', {
+      stdio: 'pipe',
     });
-    
-    const { code } = await process.output();
-    return code === 0;
+    return true;
   } catch {
     return false;
   }
