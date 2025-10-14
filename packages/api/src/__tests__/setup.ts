@@ -1,3 +1,7 @@
+// Set DATABASE_URL before any imports that need Prisma
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/tonys_chips_test';
+process.env.NODE_ENV = 'test';
+
 import prisma from '../config/database';
 
 // Setup test database before all tests
