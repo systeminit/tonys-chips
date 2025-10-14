@@ -17,7 +17,7 @@ jobs:
     name: Build & Push
     runs-on: ubuntu-latest
     needs: [ lint, api-tests ]
-    environment: sandbox
+    environment: shared
     permissions:
       id-token: write
       contents: read
@@ -54,11 +54,11 @@ jobs:
           TAG=$(npm run ci:calver --silent | tail -n 1)
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      #- name: Configure AWS credentials
-      #  uses: aws-actions/configure-aws-credentials@v4
-      #  with:
-      #    role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-      #    aws-region: ${{ vars.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
 
-      #- name: Build and push images
-      #  run: npm run ci:push-image --silent sandbox ${{ steps.tag.outputs.tag }}
+      - name: Build and push images
+        run: npm run ci:push-image --silent sandbox ${{ steps.tag.outputs.tag }}
