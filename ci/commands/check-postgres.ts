@@ -9,8 +9,8 @@ interface Config {
 
 async function checkPostgresLocal(): Promise<boolean> {
   try {
-    const process = new Deno.Command("docker-compose", {
-      args: ["-f", "docker-compose.platform.yml", "exec", "-T", "postgres-test", "pg_isready"],
+    const process = new Deno.Command("docker", {
+      args: ["compose", "-f", "docker-compose.platform.yml", "exec", "-T", "postgres-test", "pg_isready"],
       stdout: "piped",
       stderr: "piped",
     });
