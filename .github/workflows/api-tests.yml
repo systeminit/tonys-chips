@@ -1,0 +1,54 @@
+name: API Tests
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+jobs:
+  api-tests:
+    name: API Tests (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start PostgreSQL
+        run: docker-compose -f docker-compose.platform.yml up -d postgres-test
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Wait for PostgreSQL
+        run: deno task ci check-postgres local 60
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --workspace=@chips/api
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        working-directory: packages/api
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+        working-directory: packages/api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chips_test
+
+      - name: Run tests
+        run: npm test --workspace=@chips/api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chips_test
+          NODE_ENV: test

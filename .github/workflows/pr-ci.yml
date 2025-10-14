@@ -1,0 +1,64 @@
+name: PR CI Pipeline
+
+on:
+  pull_request:
+    branches: [ main ] 
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  api-tests:
+    uses: ./.github/workflows/api-tests.yml
+    with:
+      environment: sandbox
+
+  build-and-push:
+    name: Build & Push
+    runs-on: ubuntu-latest
+    needs: [ lint, api-tests ]
+    environment: sandbox
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build API
+        run: npm run build --workspace=@chips/api
+
+      - name: Build Web
+        run: npm run build --workspace=@chips/web
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+      - name: Generate image tag
+        id: tag
+        run: |
+          TAG=$(deno task ci calver | tail -n 1)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Build and push images
+        run: deno task ci push-image sandbox ${{ steps.tag.outputs.tag }}
