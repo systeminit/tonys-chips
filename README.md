@@ -168,20 +168,115 @@ npm start                      # Run production build
 npm run lint                   # Run ESLint
 ```
 
-### Running Tests
+### Testing
+
+#### Unit Tests
 
 ```bash
-# Run all tests
-npm test --workspace=@chips/api
+# Run all tests (API + Web)
+npm test
 
-# Run tests in watch mode
-npm run test:watch --workspace=@chips/api
+# Run only API tests
+npm run test:api
+
+# Run only Web tests
+npm run test:web
 
 # Run tests with coverage
 npm run test:coverage --workspace=@chips/api
+npm run test:coverage --workspace=@chips/web
+```
 
-# Lint the web application
-npm run lint --workspace=@chips/web
+#### E2E Smoke Tests (Playwright)
+
+**Comprehensive end-to-end tests** using Playwright for both API and browser testing.
+
+**Quick start:**
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run with Docker
+npm run test:e2e:docker
+
+# Run only API tests
+npm run test:e2e:api
+
+# Run only web/browser tests
+npm run test:e2e:web
+
+# Run with UI mode (interactive)
+npm run test:e2e:ui
+
+# View test report
+npm run test:e2e:report
+```
+
+**What's tested:**
+
+**API Tests** (40+ tests):
+- ✅ Health checks (2 tests)
+- ✅ Product endpoints (5 tests)
+- ✅ Cart operations (8 tests)
+- ✅ Order processing (4 tests)
+- ✅ Session isolation (1 test)
+- ✅ CORS and headers (2 tests)
+- ✅ Performance (2 tests)
+
+**Web Tests** (30+ tests):
+- ✅ Page loading (5 tests)
+- ✅ Session management (2 tests)
+- ✅ Navigation (2 tests)
+- ✅ Product display (2 tests)
+- ✅ Cart functionality (2 tests)
+- ✅ Form validation (1 test)
+- ✅ Responsive design (3 tests)
+- ✅ Error handling (2 tests)
+- ✅ Performance (2 tests)
+- ✅ Accessibility (2 tests)
+- ✅ Full user journey (1 test)
+
+**Environment detection:**
+Tests automatically adapt to where they're running:
+- **Local**: Uses `localhost:3000` and `localhost:8080`
+- **ECS/AWS**: Uses internal service URLs like `http://api.tonys-chips.local:3000`
+- **Custom**: Set `API_URL` and `WEB_URL` environment variables
+
+**Examples:**
+```bash
+# Test against staging
+API_URL=https://api-staging.example.com \
+WEB_URL=https://staging.example.com \
+npm run test:e2e
+
+# Test in headless mode (CI/CD)
+npm run test:e2e
+
+# Test with visible browser (debugging)
+npm run test:e2e:headed
+
+# Test and watch changes
+npm run test:e2e:ui
+```
+
+**CI/CD Integration:**
+```yaml
+# GitHub Actions
+- name: Install Playwright
+  run: npx playwright install --with-deps chromium
+
+- name: Run E2E tests
+  env:
+    API_URL: ${{ secrets.STAGING_API_URL }}
+    WEB_URL: ${{ secrets.STAGING_WEB_URL }}
+  run: npm run test:e2e
+
+- name: Upload test results
+  if: always()
+  uses: actions/upload-artifact@v3
+  with:
+    name: playwright-report
+    path: playwright-report/
 ```
 
 ### Building for Production
