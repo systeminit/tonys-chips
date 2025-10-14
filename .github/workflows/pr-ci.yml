@@ -55,11 +55,11 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Build and push images
-        run: npm run ci:push-image --silent sandbox ${{ steps.tag.outputs.tag }}
-        env:
-          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
-          ECR_API_REPO: ${{ vars.ECR_API_REPO }}
-          ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+      #- name: Build and push images
+      #  run: npm run ci:push-image --silent sandbox ${{ steps.tag.outputs.tag }}
+      #  env:
+      #    AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      #    AWS_REGION: ${{ vars.AWS_REGION }}
+      #    ECR_API_REPO: ${{ vars.ECR_API_REPO }}
+      #    ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+      #    VITE_API_URL: ${{ vars.VITE_API_URL }}
