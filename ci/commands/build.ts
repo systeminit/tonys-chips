@@ -38,14 +38,24 @@ function parseConfig(args: string[]): Config {
 async function buildDockerImages(config: Config): Promise<void> {
   const region = process.env.AWS_REGION || "us-west-2";
   const accountId = process.env.AWS_ACCOUNT_ID;
+  const apiRepoName = process.env.ECR_API_REPO;
+  const webRepoName = process.env.ECR_WEB_REPO;
   
   if (!accountId) {
     throw new Error("AWS_ACCOUNT_ID environment variable not found. Make sure AWS credentials are configured.");
   }
   
+  if (!apiRepoName) {
+    throw new Error("ECR_API_REPO environment variable not found. Please specify the ECR repository name for the API.");
+  }
+  
+  if (!webRepoName) {
+    throw new Error("ECR_WEB_REPO environment variable not found. Please specify the ECR repository name for the Web app.");
+  }
+  
   const ecrRegistry = `${accountId}.dkr.ecr.${region}.amazonaws.com`;
-  const apiImage = `${ecrRegistry}/tonys-chips-api`;
-  const webImage = `${ecrRegistry}/tonys-chips-web`;
+  const apiImage = `${ecrRegistry}/${apiRepoName}`;
+  const webImage = `${ecrRegistry}/${webRepoName}`;
   
   // Build API image
   runCommand(

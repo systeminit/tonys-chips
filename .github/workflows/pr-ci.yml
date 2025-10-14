@@ -17,7 +17,7 @@ jobs:
     name: Build & Push
     runs-on: ubuntu-latest
     needs: [ lint, api-tests ]
-    environment: sandbox
+    environment: shared
     permissions:
       id-token: write
       contents: read
@@ -43,22 +43,23 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: v1.x
-
       - name: Generate image tag
         id: tag
         run: |
           TAG=$(npm run ci:calver --silent | tail -n 1)
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      #- name: Configure AWS credentials
-      #  uses: aws-actions/configure-aws-credentials@v4
-      #  with:
-      #    role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-      #    aws-region: ${{ vars.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       #- name: Build and push images
       #  run: npm run ci:push-image --silent sandbox ${{ steps.tag.outputs.tag }}
+      #  env:
+      #    AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      #    AWS_REGION: ${{ vars.AWS_REGION }}
+      #    ECR_API_REPO: ${{ vars.ECR_API_REPO }}
+      #    ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+      #    VITE_API_URL: ${{ vars.VITE_API_URL }}

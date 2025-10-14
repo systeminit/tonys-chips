@@ -52,8 +52,19 @@ async function loginToECR(config: Config): Promise<void> {
 }
 
 async function pushImages(config: Config): Promise<void> {
-  const apiImage = `${config.ecrRegistry}/tonys-chips-api`;
-  const webImage = `${config.ecrRegistry}/tonys-chips-web`;
+  const apiRepoName = process.env.ECR_API_REPO;
+  const webRepoName = process.env.ECR_WEB_REPO;
+  
+  if (!apiRepoName) {
+    throw new Error("ECR_API_REPO environment variable not found. Please specify the ECR repository name for the API.");
+  }
+  
+  if (!webRepoName) {
+    throw new Error("ECR_WEB_REPO environment variable not found. Please specify the ECR repository name for the Web app.");
+  }
+  
+  const apiImage = `${config.ecrRegistry}/${apiRepoName}`;
+  const webImage = `${config.ecrRegistry}/${webRepoName}`;
   
   // Push API images
   runCommand(
