@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "ci": "deno run --allow-run --allow-read --allow-env ci/main.ts"
+  },
+  "permissions": {
+    "run": true,
+    "read": true,
+    "env": true
+  }
+}
