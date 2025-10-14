@@ -54,3 +54,6 @@ packages/api/prisma/migrations/*_migration/
 .cache/
 .temp/
 tmp/
+
+# Playwright
+.playwright-mcp/
