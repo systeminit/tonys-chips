@@ -27,22 +27,24 @@ function parseConfig(args: string[]): Config & { components: string[] } {
   if (args.length < 3) {
     throw new Error("Usage: build <environment> <component> <tag>\nExample: build sandbox api 20231201120000-abc1234");
   }
-  
+
   const environment = args[0];
   const componentArg = args[1];
   const tag = args[2];
   const viteApiUrl = process.env.VITE_API_URL || "http://localhost:3000";
-  
+
   // Parse component
   const components = [];
   if (componentArg === 'api') {
     components.push('api');
   } else if (componentArg === 'web') {
     components.push('web');
+  } else if (componentArg === 'e2e') {
+    components.push('e2e');
   } else {
-    throw new Error(`Invalid component: ${componentArg}. Must be 'api' or 'web'`);
+    throw new Error(`Invalid component: ${componentArg}. Must be 'api', 'web', or 'e2e'`);
   }
-  
+
   return { environment, tag, viteApiUrl, components };
 }
 
@@ -78,21 +80,39 @@ async function buildDockerImages(config: Config & { components: string[] }): Pro
   // Build Web image if requested
   if (config.components.includes('web')) {
     const webRepoName = process.env.ECR_WEB_REPO;
-    
+
     if (!webRepoName) {
       throw new Error("ECR_WEB_REPO environment variable not found. Please specify the ECR repository name for the Web app.");
     }
-    
+
     const webImage = `${ecrRegistry}/${webRepoName}`;
-    
+
     runCommand(
       `docker build -f docker/web.Dockerfile --build-arg VITE_API_URL=${config.viteApiUrl} -t ${webImage}:${config.tag} .`,
       "Building Web Docker image"
     );
-    
+
     builtImages.push(`Web: ${webImage}:${config.tag}`);
   }
-  
+
+  // Build E2E image if requested
+  if (config.components.includes('e2e')) {
+    const e2eRepoName = process.env.ECR_E2E_REPO;
+
+    if (!e2eRepoName) {
+      throw new Error("ECR_E2E_REPO environment variable not found. Please specify the ECR repository name for E2E tests.");
+    }
+
+    const e2eImage = `${ecrRegistry}/${e2eRepoName}`;
+
+    runCommand(
+      `docker build -f docker/e2e.Dockerfile -t ${e2eImage}:${config.tag} .`,
+      "Building E2E test Docker image"
+    );
+
+    builtImages.push(`E2E: ${e2eImage}:${config.tag}`);
+  }
+
   console.log("");
   console.log("🎉 Successfully built Docker images:");
   builtImages.forEach(image => console.log(`   ${image}`));
