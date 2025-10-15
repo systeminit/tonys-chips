@@ -13,6 +13,7 @@
     "docker:test:e2e": "npx tsx ci/main.ts test-e2e",
     "ci:calver": "npx tsx ci/main.ts calver",
     "ci:check-postgres": "npx tsx ci/main.ts check-postgres",
+    "ci:check-infraflags": "npx tsx ci/main.ts check-infraflags",
     "ci:build": "npx tsx ci/main.ts build",
     "ci:publish": "npx tsx ci/main.ts publish",
     "ci:push-image": "npx tsx ci/main.ts push-image",
@@ -27,8 +28,13 @@
   "author": "support@systeminit.com",
   "license": "Apache-2.0",
   "description": "Tony's World of Chips - E-commerce storefront",
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "system-initiative-api-client": "^1.0.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.0.0",
     "playwright": "^1.56.0",
     "tsx": "^4.0.0",

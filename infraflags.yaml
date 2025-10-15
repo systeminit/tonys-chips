@@ -1,0 +1,18 @@
+# InfraFlags - Infrastructure feature flags for continuous delivery
+# Add infrastructure flags that must be deployed before promoting this application
+#
+# Each flag listed here must be present in the target environment's deployment
+# before the CI/CD pipeline will allow promotion to that environment.
+#
+# Flags are managed in System Initiative via the SI::CD::InfraFlags component.
+
+infraflags:
+  - baseline
+  - redis
+  - poop
+  - canoe
+
+  # Uncomment flags below as you add infrastructure dependencies:
+  # - redis      # Required when using Redis for caching/sessions
+  # - postgres   # Required when using PostgreSQL database
+  # - s3-bucket  # Required when using S3 for file storage

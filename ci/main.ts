@@ -7,6 +7,7 @@
 
 import { calver } from './commands/calver.js';
 import { checkPostgres } from './commands/check-postgres.js';
+import { checkInfraFlags } from './commands/check-infraflags.js';
 import { build } from './commands/build.js';
 import { publish } from './commands/publish.js';
 import { pushImage } from './commands/push-image.js';
@@ -34,6 +35,12 @@ const commands: Command[] = [
     description: "Check PostgreSQL service readiness",
     usage: "check-postgres <environment> [timeout-seconds]",
     execute: checkPostgres,
+  },
+  {
+    name: "check-infraflags",
+    description: "Check infrastructure flags deployment status",
+    usage: "check-infraflags <environment>  (environment: pr|dev|preprod|prod)",
+    execute: checkInfraFlags,
   },
   {
     name: "build",
