@@ -112,6 +112,8 @@ jobs:
         env:
           SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
           SI_WORKSPACE_ID: ${{ vars.SI_WORKSPACE_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Upload stack artifacts (deployment only)
         if: inputs.operation == 'up'
