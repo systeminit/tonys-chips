@@ -49,14 +49,19 @@ jobs:
 
     strategy:
       matrix:
-        component: [api, web]
+        component: [api, web, e2e]
         include:
           - component: api
             workspace: "@chips/api"
             ecr_repo_var: ECR_API_REPO
+            needs_workspace_build: true
           - component: web
             workspace: "@chips/web"
             ecr_repo_var: ECR_WEB_REPO
+            needs_workspace_build: true
+          - component: e2e
+            ecr_repo_var: ECR_E2E_REPO
+            needs_workspace_build: false
 
     steps:
       - name: Checkout code
@@ -72,6 +77,7 @@ jobs:
         run: npm ci
 
       - name: Build ${{ matrix.component }}
+        if: matrix.needs_workspace_build
         run: npm run build --workspace=${{ matrix.workspace }}
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
@@ -89,6 +95,7 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION }}
           ECR_API_REPO: ${{ vars.ECR_API_REPO }}
           ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+          ECR_E2E_REPO: ${{ vars.ECR_E2E_REPO }}
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       - name: Publish ${{ matrix.component }} image
@@ -98,3 +105,4 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION }}
           ECR_API_REPO: ${{ vars.ECR_API_REPO }}
           ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+          ECR_E2E_REPO: ${{ vars.ECR_E2E_REPO }}
