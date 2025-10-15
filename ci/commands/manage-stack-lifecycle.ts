@@ -317,7 +317,7 @@ class SystemInitiativeClient {
   }
 
 
-  async stackUp(version: string): Promise<void> {
+  async stackUp(version: string, branchName: string): Promise<void> {
     let changeSetId: string | null = null;
 
     try {
@@ -360,6 +360,10 @@ class SystemInitiativeClient {
           "/domain/Tags/1": {
             "Key": "Version",
             "Value": version
+          },
+          "/domain/Tags/2": {
+            "Key": "Branch",
+            "Value": branchName
           },
           "/domain/SecurityGroupIds/0": {
             "$source": {
@@ -514,30 +518,31 @@ class SystemInitiativeClient {
 }
 
 export async function manageStackLifecycle(args: string[]): Promise<void> {
-  if (args.length < 2) {
+  if (args.length < 3) {
     console.error("❌ Missing required arguments");
-    console.error("Usage: manage-stack-lifecycle <up|down> <version>");
-    console.error("Example: manage-stack-lifecycle up 20241015.143022.0-sha.abc1234");
+    console.error("Usage: manage-stack-lifecycle <up|down> <version> <branch-name>");
+    console.error("Example: manage-stack-lifecycle up 20241015.143022.0-sha.abc1234 feat/new-feature");
     process.exit(1);
   }
 
-  const [operation, version] = args;
+  const [operation, version, branchName] = args;
   
   if (!['up', 'down'].includes(operation)) {
     console.error("❌ Invalid operation. Must be 'up' or 'down'");
-    console.error("Usage: manage-stack-lifecycle <up|down> <version>");
+    console.error("Usage: manage-stack-lifecycle <up|down> <version> <branch-name>");
     process.exit(1);
   }
 
   console.log(`🚀 Starting System Initiative stack lifecycle management`);
   console.log(`📋 Operation: ${operation}`);
   console.log(`📋 Version: ${version}`);
+  console.log(`📋 Branch: ${branchName}`);
   console.log("");
 
   const client = new SystemInitiativeClient();
   
   if (operation === 'up') {
-    await client.stackUp(version);
+    await client.stackUp(version, branchName);
   } else {
     await client.stackDown(version);
   }

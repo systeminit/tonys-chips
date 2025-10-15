@@ -20,6 +20,10 @@ on:
         description: 'PR number for posting deployment info (optional - no comment if not provided)'
         required: false
         type: string
+      branch_name:
+        description: 'Branch name for tagging resources'
+        required: true
+        type: string
   
   workflow_dispatch:
     inputs:
@@ -47,6 +51,10 @@ on:
       pr_number:
         description: 'PR number for posting deployment info (optional - no comment if not provided)'
         required: false
+        type: string
+      branch_name:
+        description: 'Branch name for tagging resources'
+        required: true
         type: string
 
 jobs:
@@ -100,7 +108,7 @@ jobs:
           echo "✅ Environment: ${{ inputs.environment }}"
 
       - name: ${{ inputs.operation == 'up' && 'Deploy' || 'Teardown' }} stack
-        run: npm run ci:manage-stack-lifecycle -- ${{ inputs.operation }} ${{ steps.version.outputs.version }}
+        run: npm run ci:manage-stack-lifecycle -- ${{ inputs.operation }} ${{ steps.version.outputs.version }} ${{ inputs.branch_name }}
         env:
           SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
           SI_WORKSPACE_ID: ${{ vars.SI_WORKSPACE_ID }}
