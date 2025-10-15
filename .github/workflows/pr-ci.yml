@@ -109,7 +109,7 @@ jobs:
 
   deploy-stack:
     name: Deploy Stack
-    needs: [build-and-publish-api, build-and-publish-web, generate-tag]
+    needs: [build-and-publish, generate-tag]
     uses: ./.github/workflows/manage-stack.yml
     with:
       operation: up
