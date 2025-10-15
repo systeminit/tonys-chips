@@ -10,6 +10,8 @@ import { checkPostgres } from './commands/check-postgres.js';
 import { build } from './commands/build.js';
 import { publish } from './commands/publish.js';
 import { pushImage } from './commands/push-image.js';
+import { manageStackLifecycle } from './commands/manage-stack-lifecycle.js';
+import { postToPr } from './commands/post-to-pr.js';
 import { buildLocal } from './commands/build-local.js';
 import { testE2e } from './commands/test-e2e.js';
 
@@ -52,6 +54,17 @@ const commands: Command[] = [
     execute: pushImage,
   },
   {
+    name: "manage-stack-lifecycle",
+    description: "Manage System Initiative environment stack lifecycle (up/down)",
+    usage: "manage-stack-lifecycle <up|down> <version>",
+    execute: manageStackLifecycle,
+  },
+  {
+    name: "post-to-pr",
+    description: "Post various content to GitHub PR with subcommands",
+    usage: "post-to-pr <subcommand> [args...]",
+    execute: postToPr,
+  },{
     name: "build-local",
     description: "Build Docker images for local development (latest tag)",
     usage: "build-local [all|api|web|e2e]",

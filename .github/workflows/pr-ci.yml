@@ -104,5 +104,19 @@ jobs:
           AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
           AWS_REGION: ${{ vars.AWS_REGION }}
           ECR_API_REPO: ${{ vars.ECR_API_REPO }}
-          ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
           ECR_E2E_REPO: ${{ vars.ECR_E2E_REPO }}
+          ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+
+  deploy-refresh-stack:
+    name: Deploy/Refresh Stack
+    needs: [build-and-publish, generate-tag]
+    uses: ./.github/workflows/manage-stack.yml
+    with:
+      operation: up
+      version: ${{ needs.generate-tag.outputs.tag }}
+      pr_number: ${{ github.event.pull_request.number }}
+      branch_name: ${{ github.head_ref }}
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write

@@ -17,7 +17,7 @@ export async function testE2e(args: string[]): Promise<void> {
   console.log(`   Web URL: ${webUrl}`);
   console.log("");
 
-  const command = `docker run --rm --network host -e API_URL=${apiUrl} -e WEB_URL=${webUrl} tonys-chips-e2e:latest`;
+  const command = `docker run --rm --network host -e API_URL=${apiUrl} -e WEB_URL=${webUrl} tonys-chips/e2e:latest`;
 
   try {
     execSync(command, { stdio: 'inherit' });

@@ -16,6 +16,8 @@
     "ci:build": "npx tsx ci/main.ts build",
     "ci:publish": "npx tsx ci/main.ts publish",
     "ci:push-image": "npx tsx ci/main.ts push-image",
+    "ci:manage-stack-lifecycle": "npx tsx ci/main.ts manage-stack-lifecycle",
+    "ci:post-to-pr": "npx tsx ci/main.ts post-to-pr",
     "test": "npm test --workspace=@chips/api",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -27,8 +29,8 @@
   "description": "Tony's World of Chips - E-commerce storefront",
   "devDependencies": {
     "@playwright/test": "^1.56.0",
-    "playwright": "^1.56.0",
     "@types/node": "^20.0.0",
+    "playwright": "^1.56.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }
