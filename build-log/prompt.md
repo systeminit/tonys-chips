@@ -4,9 +4,9 @@ This prompt generates session summaries for development sessions to track progre
 
 ## Instructions
 
-Write a summary of the session to a file named `build-log/YYYY-MM-DD.md` (e.g., `build-log/2025-10-14.md`).
+Write a summary of the session to a file named `build-log/YYYY-MM-DD-author.md` (e.g., `build-log/2025-10-14-john.md`).
 
-If a file for today's date already exists, append to it with a new session section.
+If a file for today's date already exists for the given author, append to it with a new session section. Derive author from the email.
 
 Get the user's email address using `git config user.email` and include it in the session header.
 

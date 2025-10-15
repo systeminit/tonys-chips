@@ -34,18 +34,18 @@ const commands: Command[] = [
   {
     name: "build",
     description: "Build Docker images",
-    usage: "build <environment> <tag>",
+    usage: "build <environment> <tag> [--api] [--web]",
     execute: build,
   },
   {
     name: "publish",
     description: "Publish Docker images to ECR",
-    usage: "publish <environment> <tag>",
+    usage: "publish <environment> <tag> [--api] [--web]",
     execute: publish,
   },
   {
     name: "push-image",
-    description: "Build and push Docker images to ECR (combined)",
+    description: "Build and push both Docker images to ECR (combined)",
     usage: "push-image <environment> <tag>",
     execute: pushImage,
   },
@@ -92,14 +92,21 @@ async function main() {
   }
   
   try {
-    console.log(`🔧 Executing: ${command.name}`);
-    console.log(`📋 Arguments: [${commandArgs.join(", ")}]`);
-    console.log("");
+    // Check if running in CI/silent mode
+    const silent = process.argv.includes('--silent') || process.env.CI === 'true';
+    
+    if (!silent) {
+      console.log(`🔧 Executing: ${command.name}`);
+      console.log(`📋 Arguments: [${commandArgs.join(", ")}]`);
+      console.log("");
+    }
     
     await command.execute(commandArgs);
     
-    console.log("");
-    console.log(`✅ Command '${command.name}' completed successfully`);
+    if (!silent) {
+      console.log("");
+      console.log(`✅ Command '${command.name}' completed successfully`);
+    }
   } catch (error) {
     console.error(`❌ Command '${command.name}' failed:`);
     console.error((error as Error).message);
