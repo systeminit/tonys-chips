@@ -51,12 +51,47 @@ npx prisma generate                    # Generate Prisma Client
 # Build individual images (from root)
 docker build -f docker/api.Dockerfile -t tonys-chips-api:test .
 docker build -f docker/web.Dockerfile -t tonys-chips-web:test .
+docker build -f docker/e2e.Dockerfile -t tonys-chips-e2e:test .
+
+# Or use npm script to build E2E image
+npm run docker:build:e2e
 
 # Full stack with Docker Compose
 docker-compose up --build    # Build and start all services
 docker-compose down          # Stop and remove containers
 docker-compose logs <service> # View logs for specific service
 ```
+
+### E2E Testing with Docker
+
+The E2E tests can be run in a Docker container for consistent execution across environments:
+
+```bash
+# Build the E2E test image
+npm run docker:build:e2e
+
+# Run E2E tests against local docker-compose services
+npm run docker:test:e2e
+
+# Run all E2E tests against remote services
+docker run --rm \
+  -e API_URL=https://api.example.com \
+  -e WEB_URL=https://www.example.com \
+  tonys-chips-e2e:latest
+
+# Save test results and reports to local directory
+docker run --rm \
+  -e API_URL=https://api.example.com \
+  -e WEB_URL=https://www.example.com \
+  -v $(pwd)/test-results:/app/test-results \
+  -v $(pwd)/playwright-report:/app/playwright-report \
+  tonys-chips-e2e:latest
+```
+
+**Environment Variables for E2E Container**:
+- `API_URL` - Base URL for the API (default: http://localhost:3000)
+- `WEB_URL` - Base URL for the web application (default: http://localhost:8080)
+- `CI` - Set to "true" to enable CI mode (enabled by default in container)
 
 ## Architecture
 
@@ -129,6 +164,14 @@ docker-compose logs <service> # View logs for specific service
 - Web depends on API
 - Bridge network for inter-container communication
 - Ports: postgres:5432, api:3000, web:8080
+
+**E2E Test Container** (`docker/e2e.Dockerfile`):
+- Based on official Playwright image with browsers pre-installed
+- Single-stage build with Node 20
+- Copies only test files and configuration (not full monorepo)
+- Accepts environment variables at runtime: `API_URL`, `WEB_URL`, `CI`
+- Default command runs all Playwright tests
+- Can be customized with different Playwright CLI options
 
 ### Database Schema Considerations
 

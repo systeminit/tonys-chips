@@ -141,6 +141,8 @@ npm install                    # Install all workspace dependencies
 npm run docker:up              # Start Docker Compose stack
 npm run docker:down            # Stop Docker Compose stack
 npm run docker:logs            # View logs from all services
+npm run docker:build:e2e       # Build E2E test Docker image
+npm run docker:test:e2e        # Run E2E tests in Docker against local services
 ```
 
 #### API Commands (packages/api/)
@@ -173,43 +175,54 @@ npm run lint                   # Run ESLint
 #### Unit Tests
 
 ```bash
-# Run all tests (API + Web)
+# Run API tests
 npm test
 
-# Run only API tests
-npm run test:api
-
-# Run only Web tests
-npm run test:web
-
-# Run tests with coverage
-npm run test:coverage --workspace=@chips/api
-npm run test:coverage --workspace=@chips/web
+# Run tests with coverage (from packages/api/)
+npm run test:coverage
 ```
 
-#### E2E Smoke Tests (Playwright)
+#### E2E Tests (Playwright)
 
 **Comprehensive end-to-end tests** using Playwright for both API and browser testing.
 
 **Quick start:**
 ```bash
-# Run all E2E tests
+# Run all E2E tests locally (requires services running)
 npm run test:e2e
 
-# Run with Docker
-npm run test:e2e:docker
+# Run E2E tests in Docker against local docker-compose services
+npm run docker:build:e2e   # Build image (first time only)
+npm run docker:test:e2e    # Run tests
 
-# Run only API tests
-npm run test:e2e:api
-
-# Run only web/browser tests
-npm run test:e2e:web
-
-# Run with UI mode (interactive)
+# Run with UI mode (interactive, local only)
 npm run test:e2e:ui
 
 # View test report
 npm run test:e2e:report
+```
+
+**Docker E2E Testing:**
+```bash
+# Build the E2E test image
+npm run docker:build:e2e
+
+# Run against local docker-compose services
+npm run docker:test:e2e
+
+# Run against remote/deployed services
+docker run --rm \
+  -e API_URL=https://api.example.com \
+  -e WEB_URL=https://www.example.com \
+  tonys-chips-e2e:latest
+
+# Save test results locally
+docker run --rm \
+  -e API_URL=https://api.example.com \
+  -e WEB_URL=https://www.example.com \
+  -v $(pwd)/test-results:/app/test-results \
+  -v $(pwd)/playwright-report:/app/playwright-report \
+  tonys-chips-e2e:latest
 ```
 
 **What's tested:**
@@ -236,47 +249,22 @@ npm run test:e2e:report
 - ✅ Accessibility (2 tests)
 - ✅ Full user journey (1 test)
 
-**Environment detection:**
-Tests automatically adapt to where they're running:
-- **Local**: Uses `localhost:3000` and `localhost:8080`
-- **ECS/AWS**: Uses internal service URLs like `http://api.tonys-chips.local:3000`
+**Environment configuration:**
+- **Default**: Uses `localhost:3000` (API) and `localhost:8080` (web)
 - **Custom**: Set `API_URL` and `WEB_URL` environment variables
 
 **Examples:**
 ```bash
-# Test against staging
+# Test against staging (local execution)
 API_URL=https://api-staging.example.com \
 WEB_URL=https://staging.example.com \
 npm run test:e2e
 
-# Test in headless mode (CI/CD)
-npm run test:e2e
-
-# Test with visible browser (debugging)
-npm run test:e2e:headed
-
-# Test and watch changes
-npm run test:e2e:ui
-```
-
-**CI/CD Integration:**
-```yaml
-# GitHub Actions
-- name: Install Playwright
-  run: npx playwright install --with-deps chromium
-
-- name: Run E2E tests
-  env:
-    API_URL: ${{ secrets.STAGING_API_URL }}
-    WEB_URL: ${{ secrets.STAGING_WEB_URL }}
-  run: npm run test:e2e
-
-- name: Upload test results
-  if: always()
-  uses: actions/upload-artifact@v3
-  with:
-    name: playwright-report
-    path: playwright-report/
+# Test against staging (Docker execution)
+docker run --rm \
+  -e API_URL=https://api-staging.example.com \
+  -e WEB_URL=https://staging.example.com \
+  tonys-chips-e2e:latest
 ```
 
 ### Building for Production
@@ -285,6 +273,10 @@ npm run test:e2e:ui
 # Build Docker images
 docker build -f docker/api.Dockerfile -t tonys-chips-api:latest .
 docker build -f docker/web.Dockerfile -t tonys-chips-web:latest .
+docker build -f docker/e2e.Dockerfile -t tonys-chips-e2e:latest .
+
+# Or use npm scripts
+npm run docker:build:e2e
 
 # Build locally
 npm run build --workspace=@chips/api
