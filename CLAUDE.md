@@ -115,7 +115,7 @@ docker run --rm \
   -e WEB_URL=https://www.example.com \
   -v $(pwd)/test-results:/app/test-results \
   -v $(pwd)/playwright-report:/app/playwright-report \
-  tonys-chips-e2e:latest
+  tonys-chips/e2e:latest
 ```
 
 **Environment Variables for E2E Container**:

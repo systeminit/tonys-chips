@@ -38,28 +38,28 @@ export async function buildLocal(args: string[]): Promise<void> {
   // Build API image
   if (component === "all" || component === "api") {
     runCommand(
-      "docker build -f docker/api.Dockerfile -t tonys-chips-api:latest .",
+      "docker build -f docker/api.Dockerfile -t tonys-chips/api:latest .",
       "Building API Docker image",
     );
-    builtImages.push("tonys-chips-api:latest");
+    builtImages.push("tonys-chips/api:latest");
   }
 
   // Build Web image
   if (component === "all" || component === "web") {
     runCommand(
-      "docker build -f docker/web.Dockerfile -t tonys-chips-web:latest .",
+      "docker build -f docker/web.Dockerfile -t tonys-chips/web:latest .",
       "Building Web Docker image",
     );
-    builtImages.push("tonys-chips-web:latest");
+    builtImages.push("tonys-chips/web:latest");
   }
 
   // Build E2E image
   if (component === "all" || component === "e2e") {
     runCommand(
-      "docker build -f docker/e2e.Dockerfile -t tonys-chips-e2e:latest .",
+      "docker build -f docker/e2e.Dockerfile -t tonys-chips/e2e:latest .",
       "Building E2E test Docker image",
     );
-    builtImages.push("tonys-chips-e2e:latest");
+    builtImages.push("tonys-chips/e2e:latest");
   }
 
   console.log("");
