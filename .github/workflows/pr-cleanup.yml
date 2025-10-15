@@ -1,0 +1,55 @@
+name: PR Environment Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup-environment:
+    name: Cleanup Environment for ${{ github.head_ref }}
+    runs-on: ubuntu-latest
+    environment: sandbox
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Generate cleanup version
+        id: version
+        run: |
+          VERSION=$(npm run ci:calver --silent | tail -n 1)
+          echo "cleanup-version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Cleanup environment for branch
+        run: npm run ci:manage-stack-lifecycle -- down ${{ steps.version.outputs.cleanup-version }} ${{ github.head_ref }}
+        env:
+          SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
+          SI_WORKSPACE_ID: ${{ vars.SI_WORKSPACE_ID }}
+
+      - name: Post cleanup info to PR
+        if: github.event.action == 'closed'
+        run: npm run ci:post-to-pr -- cleanup-complete ${{ github.event.pull_request.number }} ${{ github.head_ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Output cleanup info
+        run: |
+          echo "🧹 Cleanup completed for branch: ${{ github.head_ref }}"
+          echo "🏷️  Cleanup version: ${{ steps.version.outputs.cleanup-version }}"
+          
+          if [ -f "error" ]; then
+            echo "❌ Cleanup encountered errors:"
+            cat error
+          else
+            echo "✅ Cleanup completed successfully"
+          fi

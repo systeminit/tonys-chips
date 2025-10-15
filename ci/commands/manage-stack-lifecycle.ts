@@ -317,11 +317,34 @@ class SystemInitiativeClient {
   }
 
 
-  async stackUp(version: string, branchName: string): Promise<void> {
+  async stackUp(version: string, branchName: string, prNumber?: string): Promise<void> {
     let changeSetId: string | null = null;
 
     try {
       console.log('🚀 Starting System Initiative Environment Setup');
+
+      // First, destroy any existing components for this branch
+      console.log(`🔍 Checking for existing components for branch ${branchName}...`);
+      const existingComponents = await this.searchComponentsByBranch(branchName);
+      
+      if (existingComponents.length > 0) {
+        console.log(`Found ${existingComponents.length} existing component(s) for branch ${branchName}. Cleaning up...`);
+        
+        // Post PR comment about environment refresh if PR number is provided
+        if (prNumber) {
+          console.log(`📝 Posting environment refresh comment to PR #${prNumber}`);
+          try {
+            await this.postEnvironmentRefreshComment(prNumber, branchName);
+          } catch (error) {
+            console.warn(`⚠️  Failed to post PR comment: ${error}`);
+          }
+        }
+        
+        await this.stackDown(branchName);
+        console.log('✅ Cleanup complete. Proceeding with new deployment...\n');
+      } else {
+        console.log(`✅ No existing components found for branch ${branchName}. Proceeding with deployment...\n`);
+      }
 
       const environmentUuid = randomUUID();
       const changeSetName = `Environment ${environmentUuid} - v${version}`;
@@ -509,27 +532,218 @@ class SystemInitiativeClient {
     }
   }
 
-  async stackDown(version: string): Promise<void> {
-    console.log('🔥 Starting System Initiative Environment Teardown');
-    console.log(`📋 Version: ${version}`);
-    console.log('⚠️  Teardown functionality is not yet implemented.');
-    console.log('This is a placeholder - teardown will be implemented separately.');
+  async getHeadChangesetId(): Promise<string> {
+    const url = `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets`;
+    
+    try {
+      const response = await this.fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json() as any;
+      const changeSets = data.changeSets || [];
+      
+      // Find the changeset where isHead is true
+      const headChangeSet = changeSets.find((cs: any) => cs.isHead === true);
+      
+      if (!headChangeSet) {
+        throw new Error('No HEAD changeset found');
+      }
+      
+      console.log(`Found HEAD changeset: ${headChangeSet.id}`);
+      return headChangeSet.id;
+    } catch (error) {
+      console.error('Failed to get HEAD changeset ID:', error);
+      throw error;
+    }
+  }
+
+  async searchComponentsByBranch(branchName: string): Promise<any[]> {
+    const headChangesetId = await this.getHeadChangesetId();
+    const query = `schema:AWS::EC2::Instance & Key:Branch & Value:${branchName}`;
+    const url = `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${headChangesetId}/search?q=${encodeURIComponent(query)}`;
+    
+    try {
+      const response = await this.fetch(url, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const searchData = await response.json() as any;
+      const components = searchData.components || [];
+      
+      console.log(`Found ${components.length} component(s) for branch ${branchName}`);
+      for (const comp of components) {
+        console.log(`  - ${comp.name} (${comp.id})`);
+      }
+      
+      return components;
+    } catch (error) {
+      console.error(`Failed to search components for branch ${branchName}:`, error);
+      return [];
+    }
+  }
+
+  async deleteComponent(changeSetId: string, componentId: string): Promise<void> {
+    const response = await this.fetch(
+      `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${changeSetId}/components/${componentId}`,
+      { method: 'DELETE' }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+  }
+
+  async stackDown(branchName: string): Promise<void> {
+    let changeSetId: string | null = null;
+
+    try {
+      console.log('🔥 Starting System Initiative Environment Teardown');
+      console.log(`📋 Branch: ${branchName}`);
+      console.log("");
+
+      // Search for components by branch name
+      const componentsToDelete = await this.searchComponentsByBranch(branchName);
+      
+      if (componentsToDelete.length === 0) {
+        console.log(`✅ No components found for branch ${branchName} - nothing to clean up`);
+        return;
+      }
+
+      const changeSetName = `Teardown Branch ${branchName} - ${new Date().toISOString()}`;
+      console.log(`Creating teardown change set: ${changeSetName}`);
+
+      try {
+        const changeSetData = await this.createChangeSet(changeSetName);
+        changeSetId = changeSetData.changeSet.id;
+        console.log(`Created ChangeSet ID: ${changeSetId}`);
+      } catch (e) {
+        const errorMsg = `Failed to create teardown change set '${changeSetName}': ${e}`;
+        await this.writeErrorToFile(errorMsg);
+        console.error(errorMsg);
+        process.exit(1);
+      }
+
+      if (!changeSetId) {
+        throw new Error('Failed to create change set');
+      }
+
+      // Delete each component found
+      console.log(`🗑️  Deleting ${componentsToDelete.length} component(s)...`);
+      for (const comp of componentsToDelete) {
+        console.log(`Deleting component: ${comp.name} (${comp.id})`);
+        try {
+          await this.deleteComponent(changeSetId, comp.id);
+          console.log(`✅ Component ${comp.name} queued for deletion`);
+        } catch (e) {
+          console.error(`❌ Failed to delete component ${comp.name}: ${e}`);
+        }
+      }
+
+      console.log(`Force applying teardown change set ${changeSetId}...`);
+      try {
+        await this.forceApplyWithRetry(changeSetId);
+      } catch (e) {
+        const errorMsg = `Failed to apply teardown change set: ${e}`;
+        await this.writeErrorToFile(errorMsg);
+        console.error(errorMsg);
+        process.exit(1);
+      }
+
+      console.log("Waiting for teardown actions to complete...");
+      const success = await this.waitForMergeSuccess(changeSetId);
+
+      if (!success) {
+        try {
+          await fs.access('./error');
+        } catch {
+          await this.writeErrorToFile("Teardown actions failed - check logs for details");
+        }
+        console.log("❌ Teardown actions failed. Exiting.");
+        process.exit(1);
+      }
+
+      console.log("✅ All teardown actions completed successfully");
+      
+      // Clean up local files
+      try {
+        await fs.unlink('./ip');
+        console.log('Removed IP file');
+      } catch (e) {
+        // File might not exist, that's fine
+      }
+
+    } catch (e) {
+      if (e instanceof Error) {
+        const errorMsg = `Teardown error: ${e.message}`;
+        await this.writeErrorToFile(errorMsg);
+        console.error(errorMsg);
+      }
+      process.exit(1);
+    } finally {
+      if (changeSetId) {
+        try {
+          const response = await this.getChangeSet(changeSetId);
+          if (response.ok) {
+            console.log(`Cleaning up teardown change set ${changeSetId}...`);
+            await this.deleteChangeSet(changeSetId);
+            console.log('Teardown change set deleted.');
+          }
+        } catch (cleanupErr) {
+          console.error(`Failed to cleanup teardown change set: ${cleanupErr}`);
+        }
+      }
+    }
+  }
+
+  private async postEnvironmentRefreshComment(prNumber: string, branchName: string): Promise<void> {
+    const { spawn } = await import('child_process');
+    
+    return new Promise((resolve, reject) => {
+      const childProcess = spawn('npm', ['run', 'ci:post-to-pr', '--', 'environment-refresh', prNumber, branchName], {
+        env: {
+          ...process.env,
+          GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+          GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY
+        },
+        stdio: 'inherit'
+      });
+
+      childProcess.on('close', (code: number) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`PR comment command failed with exit code ${code}`));
+        }
+      });
+
+      childProcess.on('error', (error: Error) => {
+        reject(new Error(`Failed to spawn PR comment process: ${error.message}`));
+      });
+    });
   }
 }
 
 export async function manageStackLifecycle(args: string[]): Promise<void> {
   if (args.length < 3) {
     console.error("❌ Missing required arguments");
-    console.error("Usage: manage-stack-lifecycle <up|down> <version> <branch-name>");
+    console.error("Usage: manage-stack-lifecycle <up|down> <version> <branch-name> [pr-number]");
     console.error("Example: manage-stack-lifecycle up 20241015.143022.0-sha.abc1234 feat/new-feature");
+    console.error("Example: manage-stack-lifecycle up 20241015.143022.0-sha.abc1234 feat/new-feature 123");
     process.exit(1);
   }
 
-  const [operation, version, branchName] = args;
+  const [operation, version, branchName, prNumber] = args;
   
   if (!['up', 'down'].includes(operation)) {
     console.error("❌ Invalid operation. Must be 'up' or 'down'");
-    console.error("Usage: manage-stack-lifecycle <up|down> <version> <branch-name>");
+    console.error("Usage: manage-stack-lifecycle <up|down> <version> <branch-name> [pr-number]");
     process.exit(1);
   }
 
@@ -542,8 +756,8 @@ export async function manageStackLifecycle(args: string[]): Promise<void> {
   const client = new SystemInitiativeClient();
   
   if (operation === 'up') {
-    await client.stackUp(version, branchName);
+    await client.stackUp(version, branchName, prNumber);
   } else {
-    await client.stackDown(version);
+    await client.stackDown(branchName);
   }
 }

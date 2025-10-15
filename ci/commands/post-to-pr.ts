@@ -288,6 +288,155 @@ Please check the workflow logs for more details.`;
   console.log("✅ Successfully posted environment info to PR");
 }
 
+async function handleCleanupComplete(args: string[]): Promise<void> {
+  if (args.length < 2) {
+    console.error("❌ Missing required arguments for cleanup-complete");
+    console.error("Usage: post-to-pr cleanup-complete <pr-number> <branch-name>");
+    console.error("Example: post-to-pr cleanup-complete 123 feat/new-feature");
+    process.exit(1);
+  }
+
+  const [prNumberStr, branchName] = args;
+  
+  // Validate PR number
+  if (!/^\d+$/.test(prNumberStr)) {
+    console.error(`❌ Invalid PR number: ${prNumberStr}. Must be a positive integer.`);
+    process.exit(1);
+  }
+  
+  const prNumber = parseInt(prNumberStr, 10);
+  
+  console.log("📝 Posting cleanup completion info to GitHub PR");
+  console.log(`📋 PR Number: ${prNumber}`);
+  console.log(`📋 Branch: ${branchName}`);
+  console.log("");
+
+  // Check for error file
+  let errorMessage: string | null = null;
+  try {
+    errorMessage = (await fs.readFile('./error', 'utf8')).trim();
+    console.log(`❌ Found error message: ${errorMessage}`);
+  } catch (error) {
+    // No error file is fine
+  }
+
+  const client = new GitHubClient();
+
+  // Create unique identifier for this comment type
+  const commentIdentifier = `cleanup-complete-${branchName}`;
+
+  // Check for existing comment for this cleanup
+  const existingCommentId = await client.findExistingComment(prNumber, commentIdentifier);
+
+  // Create comment body
+  let commentBody: string;
+  
+  if (!errorMessage) {
+    // Successful cleanup
+    commentBody = `<!-- ${commentIdentifier} -->
+🧹 **Environment Cleanup Complete**
+
+✅ The environment for branch \`${branchName}\` has been successfully cleaned up.
+
+**Cleanup Details:**
+- 🌿 **Branch:** \`${branchName}\`
+- ⏰ **Completed:** ${new Date().toISOString()}
+- 🗑️ **Action:** All associated AWS resources have been terminated
+
+**Summary:**
+- EC2 instances stopped and terminated
+- Associated resources cleaned up
+- No further charges will accrue for this environment
+
+> 💡 **Note:** This cleanup was triggered automatically when the PR was closed.`;
+  } else {
+    // Failed cleanup
+    commentBody = `<!-- ${commentIdentifier} -->
+⚠️ **Environment Cleanup Issues**
+
+The cleanup process for branch \`${branchName}\` encountered some issues:
+
+**Error Details:**
+\`\`\`
+${errorMessage}
+\`\`\`
+
+**Cleanup Details:**
+- 🌿 **Branch:** \`${branchName}\`
+- ⏰ **Attempted:** ${new Date().toISOString()}
+
+**Next Steps:**
+- Some resources may still be running
+- Please check the AWS console or contact the team for manual cleanup
+- Check the workflow logs for more details
+
+> ⚠️ **Important:** Manual cleanup may be required to avoid ongoing charges.`;
+  }
+
+  // Post or update comment
+  if (existingCommentId) {
+    console.log(`Updating existing cleanup comment ID: ${existingCommentId}`);
+    await client.updateComment(existingCommentId, commentBody);
+  } else {
+    console.log(`Posting new cleanup comment to PR #${prNumber}`);
+    await client.postComment(prNumber, commentBody);
+  }
+
+  console.log("✅ Successfully posted cleanup info to PR");
+}
+
+async function handleEnvironmentRefresh(args: string[]): Promise<void> {
+  if (args.length < 2) {
+    console.error("❌ Missing required arguments for environment-refresh");
+    console.error("Usage: post-to-pr environment-refresh <pr-number> <branch-name>");
+    console.error("Example: post-to-pr environment-refresh 123 feat/new-feature");
+    process.exit(1);
+  }
+
+  const [prNumberStr, branchName] = args;
+  
+  // Validate PR number
+  if (!/^\d+$/.test(prNumberStr)) {
+    console.error(`❌ Invalid PR number: ${prNumberStr}. Must be a positive integer.`);
+    process.exit(1);
+  }
+  
+  const prNumber = parseInt(prNumberStr, 10);
+  
+  console.log("📝 Posting environment refresh info to GitHub PR");
+  console.log(`📋 PR Number: ${prNumber}`);
+  console.log(`📋 Branch: ${branchName}`);
+  console.log("");
+
+  const client = new GitHubClient();
+
+  // Create unique identifier for this comment type
+  const commentIdentifier = `environment-refresh-${branchName}-${Date.now()}`;
+
+  // Create comment body
+  const commentBody = `<!-- ${commentIdentifier} -->
+🔄 **Environment Refreshing**
+
+The environment for branch \`${branchName}\` is being refreshed with the latest changes.
+
+**Refresh Details:**
+- 🌿 **Branch:** \`${branchName}\`
+- ⏰ **Started:** ${new Date().toISOString()}
+- 🔄 **Action:** Destroying existing environment and deploying fresh resources
+
+**What's happening:**
+1. 🗑️ Cleaning up previous environment resources
+2. 🚀 Deploying new environment with latest code
+3. 🔗 New deployment info will be posted once ready
+
+> 💡 **Note:** This ensures you always have the latest changes in your test environment!`;
+
+  console.log(`Posting environment refresh comment to PR #${prNumber}`);
+  await client.postComment(prNumber, commentBody);
+
+  console.log("✅ Successfully posted environment refresh info to PR");
+}
+
 export async function postToPr(args: string[]): Promise<void> {
   if (args.length < 1) {
     console.error("❌ Missing subcommand");
@@ -296,10 +445,16 @@ export async function postToPr(args: string[]): Promise<void> {
     console.error("Available subcommands:");
     console.error("  new-environment <pr-number> <version> [endpoint]");
     console.error("    Post new environment deployment info to PR");
+    console.error("  cleanup-complete <pr-number> <branch-name>");
+    console.error("    Post environment cleanup completion info to PR");
+    console.error("  environment-refresh <pr-number> <branch-name>");
+    console.error("    Post environment refresh notification to PR");
     console.error("");
     console.error("Examples:");
     console.error("  post-to-pr new-environment 123 20241015.143022.0-sha.abc1234");
     console.error("  post-to-pr new-environment 123 20241015.143022.0-sha.abc1234 52.1.2.3");
+    console.error("  post-to-pr cleanup-complete 123 feat/new-feature");
+    console.error("  post-to-pr environment-refresh 123 feat/new-feature");
     process.exit(1);
   }
 
@@ -309,9 +464,15 @@ export async function postToPr(args: string[]): Promise<void> {
     case 'new-environment':
       await handleNewEnvironment(subArgs);
       break;
+    case 'cleanup-complete':
+      await handleCleanupComplete(subArgs);
+      break;
+    case 'environment-refresh':
+      await handleEnvironmentRefresh(subArgs);
+      break;
     default:
       console.error(`❌ Unknown subcommand: ${subcommand}`);
-      console.error("Available subcommands: new-environment");
+      console.error("Available subcommands: new-environment, cleanup-complete, environment-refresh");
       process.exit(1);
   }
 }
