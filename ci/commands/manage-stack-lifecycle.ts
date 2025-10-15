@@ -567,9 +567,7 @@ class SystemInitiativeClient {
     const url = `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${headChangesetId}/search?q=${encodeURIComponent(query)}`;
     
     try {
-      const response = await this.fetch(url, {
-        method: 'POST'
-      });
+      const response = await this.fetch(url);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
