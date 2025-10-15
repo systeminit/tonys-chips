@@ -217,7 +217,7 @@ async function handleNewEnvironment(args: string[]): Promise<void> {
     commentBody = `<!-- ${commentIdentifier} -->
 🚀 **New Environment Deployed**
 
-✅ Your Tony's Chips application has been deployed and is ready for testing!
+✅ Your Tony's Chips application has been deployed and will be ready for testing in a few minutes!
 
 **Environment Details:**
 - 🌐 **Application URL:** \`http://${publicEndpoint}:8080\`
