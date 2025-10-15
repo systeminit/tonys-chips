@@ -10,6 +10,8 @@ import { checkPostgres } from './commands/check-postgres.js';
 import { build } from './commands/build.js';
 import { publish } from './commands/publish.js';
 import { pushImage } from './commands/push-image.js';
+import { buildLocal } from './commands/build-local.js';
+import { testE2e } from './commands/test-e2e.js';
 
 interface Command {
   name: string;
@@ -33,21 +35,33 @@ const commands: Command[] = [
   },
   {
     name: "build",
-    description: "Build Docker images",
-    usage: "build <environment> <tag> [--api] [--web]",
+    description: "Build Docker images for deployment",
+    usage: "build <environment> <component> <tag>  (component: api|web|e2e)",
     execute: build,
   },
   {
     name: "publish",
     description: "Publish Docker images to ECR",
-    usage: "publish <environment> <tag> [--api] [--web]",
+    usage: "publish <environment> <component> <tag>  (component: api|web|e2e)",
     execute: publish,
   },
   {
     name: "push-image",
-    description: "Build and push both Docker images to ECR (combined)",
-    usage: "push-image <environment> <tag>",
+    description: "Build and push Docker image to ECR (combined build + publish)",
+    usage: "push-image <environment> <component> <tag>  (component: api|web|e2e)",
     execute: pushImage,
+  },
+  {
+    name: "build-local",
+    description: "Build Docker images for local development (latest tag)",
+    usage: "build-local [all|api|web|e2e]",
+    execute: buildLocal,
+  },
+  {
+    name: "test-e2e",
+    description: "Run E2E tests in Docker container",
+    usage: "test-e2e",
+    execute: testE2e,
   },
 ];
 
@@ -66,7 +80,8 @@ function showHelp() {
   
   console.log("Examples:");
   console.log("  tsx ci/main.ts calver");
-  console.log("  tsx ci/main.ts check-postgres local 60");
+  console.log("  tsx ci/main.ts build-local all");
+  console.log("  tsx ci/main.ts test-e2e");
   console.log("  tsx ci/main.ts push-image sandbox 20231201120000-abc1234");
   console.log("");
 }

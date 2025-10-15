@@ -40,16 +40,21 @@ This project is organized as a monorepo with the following structure:
    cd sample-app
    ```
 
-2. **Start the application**
+2. **Build the Docker images**
+   ```bash
+   npm run build:local
+   ```
+
+3. **Start the application**
    ```bash
    npm run docker:up
    ```
 
-3. **Access the application**
+4. **Access the application**
    - Web UI: http://localhost:8080 (Express server with EJS templates)
    - API: http://localhost:3000/api
 
-4. **Stop the application**
+5. **Stop the application**
    ```bash
    npm run docker:down
    ```
@@ -59,18 +64,23 @@ This project is organized as a monorepo with the following structure:
 #### Option 1: Docker Compose (Easiest)
 
 ```bash
+# Build images first (required before first run)
+npm run build:local              # Build API, web, and E2E images
+
 # Start all services (postgres, api, web)
-npm run docker:up
+npm run docker:up                # Start in foreground
+docker-compose up -d             # Start in background
 
 # View logs for all services
-npm run docker:logs
-
-# View logs for specific service
-docker-compose logs api
-docker-compose logs web
+npm run docker:logs              # Follow all logs
+docker-compose logs -f api       # Follow API logs only
+docker-compose logs -f web       # Follow web logs only
 
 # Stop all services
 npm run docker:down
+
+# Use specific image version (bypassing npm scripts)
+IMAGE_TAG=20250115120000-abc123 docker-compose up
 ```
 
 The database is automatically migrated and seeded with sample products on startup. The web service runs on port 8080 (mapped from container port 3001).
@@ -138,10 +148,16 @@ The web UI will run on http://localhost:3001
 #### Root Commands
 ```bash
 npm install                    # Install all workspace dependencies
-npm run docker:up              # Start Docker Compose stack
-npm run docker:down            # Stop Docker Compose stack
+
+# Local build commands
+npm run build:local            # Build API, web, and E2E images (latest tag)
+
+# Docker compose commands
+npm run docker:up              # Start all services (foreground)
+npm run docker:down            # Stop all services
 npm run docker:logs            # View logs from all services
-npm run docker:build:e2e       # Build E2E test Docker image
+
+# E2E testing
 npm run docker:test:e2e        # Run E2E tests in Docker against local services
 ```
 
@@ -192,8 +208,8 @@ npm run test:coverage
 npm run test:e2e
 
 # Run E2E tests in Docker against local docker-compose services
-npm run docker:build:e2e   # Build image (first time only)
-npm run docker:test:e2e    # Run tests
+npm run build:local         # Build images (first time only, builds all including E2E)
+npm run docker:test:e2e     # Run tests
 
 # Run with UI mode (interactive, local only)
 npm run test:e2e:ui
@@ -204,8 +220,8 @@ npm run test:e2e:report
 
 **Docker E2E Testing:**
 ```bash
-# Build the E2E test image
-npm run docker:build:e2e
+# Build all images including E2E (local development)
+npm run build:local
 
 # Run against local docker-compose services
 npm run docker:test:e2e
@@ -270,15 +286,15 @@ docker run --rm \
 ### Building for Production
 
 ```bash
-# Build Docker images
+# Build Docker images for local development
+npm run build:local
+
+# Or build directly with docker
 docker build -f docker/api.Dockerfile -t tonys-chips-api:latest .
 docker build -f docker/web.Dockerfile -t tonys-chips-web:latest .
 docker build -f docker/e2e.Dockerfile -t tonys-chips-e2e:latest .
 
-# Or use npm scripts
-npm run docker:build:e2e
-
-# Build locally
+# Build locally (native)
 npm run build --workspace=@chips/api
 npm run build --workspace=@chips/web
 ```
