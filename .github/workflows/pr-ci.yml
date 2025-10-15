@@ -107,8 +107,8 @@ jobs:
           ECR_E2E_REPO: ${{ vars.ECR_E2E_REPO }}
           ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
 
-  deploy-stack:
-    name: Deploy Stack
+  deploy-refresh-stack:
+    name: Deploy/Refresh Stack
     needs: [build-and-publish, generate-tag]
     uses: ./.github/workflows/manage-stack.yml
     with:
