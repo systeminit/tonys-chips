@@ -48,10 +48,12 @@ function parseConfig(args: string[]): Config & { components: string[] } {
     components.push('api');
   } else if (componentArg === 'web') {
     components.push('web');
+  } else if (componentArg === 'e2e') {
+    components.push('e2e');
   } else {
-    throw new Error(`Invalid component: ${componentArg}. Must be 'api' or 'web'`);
+    throw new Error(`Invalid component: ${componentArg}. Must be 'api', 'web', or 'e2e'`);
   }
-  
+
   return { environment, tag, region, ecrRegistry, accountId, components };
 }
 
@@ -86,21 +88,39 @@ async function pushImages(config: Config & { components: string[] }): Promise<vo
   // Push Web images if requested
   if (config.components.includes('web')) {
     const webRepoName = process.env.ECR_WEB_REPO;
-    
+
     if (!webRepoName) {
       throw new Error("ECR_WEB_REPO environment variable not found. Please specify the ECR repository name for the Web app.");
     }
-    
+
     const webImage = `${config.ecrRegistry}/${webRepoName}`;
-    
+
     runCommand(
       `docker push ${webImage}:${config.tag}`,
       "Pushing Web image with tag"
     );
-    
+
     publishedImages.push(`Web: ${webImage}:${config.tag}`);
   }
-  
+
+  // Push E2E images if requested
+  if (config.components.includes('e2e')) {
+    const e2eRepoName = process.env.ECR_E2E_REPO;
+
+    if (!e2eRepoName) {
+      throw new Error("ECR_E2E_REPO environment variable not found. Please specify the ECR repository name for E2E tests.");
+    }
+
+    const e2eImage = `${config.ecrRegistry}/${e2eRepoName}`;
+
+    runCommand(
+      `docker push ${e2eImage}:${config.tag}`,
+      "Pushing E2E image with tag"
+    );
+
+    publishedImages.push(`E2E: ${e2eImage}:${config.tag}`);
+  }
+
   console.log("");
   console.log("🎉 Successfully published images:");
   publishedImages.forEach(image => console.log(`   ${image}`));

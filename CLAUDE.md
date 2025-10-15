@@ -48,18 +48,45 @@ npx prisma generate                    # Generate Prisma Client
 ### Docker Commands
 
 ```bash
-# Build individual images (from root)
-docker build -f docker/api.Dockerfile -t tonys-chips-api:test .
-docker build -f docker/web.Dockerfile -t tonys-chips-web:test .
-docker build -f docker/e2e.Dockerfile -t tonys-chips-e2e:test .
+# Local build commands (uses CI orchestration)
+npm run build:local          # Build API, web, and E2E images with latest tag
 
-# Or use npm script to build E2E image
-npm run docker:build:e2e
+# Or use CI commands directly for granular control
+npx tsx ci/main.ts build-local all    # Build all images (api + web + e2e)
+npx tsx ci/main.ts build-local api    # Build only API image
+npx tsx ci/main.ts build-local web    # Build only web image
+npx tsx ci/main.ts build-local e2e    # Build only E2E test image
 
-# Full stack with Docker Compose
-docker-compose up --build    # Build and start all services
+# CI/Deployment build commands (with specific tags)
+npx tsx ci/main.ts build <environment> api <tag>     # Build API for deployment
+npx tsx ci/main.ts build <environment> web <tag>     # Build web for deployment
+npx tsx ci/main.ts build <environment> e2e <tag>     # Build E2E for deployment
+
+# Publish to ECR
+npx tsx ci/main.ts publish <environment> api <tag>   # Publish API to ECR
+npx tsx ci/main.ts publish <environment> web <tag>   # Publish web to ECR
+npx tsx ci/main.ts publish <environment> e2e <tag>   # Publish E2E to ECR
+
+# Build and publish combined (convenience)
+npx tsx ci/main.ts push-image <environment> api <tag>  # Build + publish API
+npx tsx ci/main.ts push-image <environment> web <tag>  # Build + publish web
+npx tsx ci/main.ts push-image <environment> e2e <tag>  # Build + publish E2E
+
+# Docker Compose orchestration (direct docker-compose commands)
+npm run docker:up            # Start services using latest tag (foreground)
+npm run docker:down          # Stop and remove containers
+npm run docker:logs          # View logs for all services
+
+# Or use docker-compose directly
+docker-compose up            # Start services (foreground)
+docker-compose up -d         # Start services (background)
 docker-compose down          # Stop and remove containers
-docker-compose logs <service> # View logs for specific service
+docker-compose logs -f       # View all logs
+docker-compose logs -f api   # View API logs only
+
+# Use specific image tag (for remote deployment or versioned testing)
+IMAGE_TAG=20250115120000-abc123 docker-compose up
+IMAGE_TAG=20250115120000-abc123 docker-compose up -d
 ```
 
 ### E2E Testing with Docker
@@ -67,19 +94,22 @@ docker-compose logs <service> # View logs for specific service
 The E2E tests can be run in a Docker container for consistent execution across environments:
 
 ```bash
-# Build the E2E test image
-npm run docker:build:e2e
+# Build all images including E2E (local development)
+npm run build:local
+# Or build E2E only: npx tsx ci/main.ts build-local e2e
+
+# Build E2E image for CI/deployment with specific tag
+npx tsx ci/main.ts build sandbox e2e 20250115120000-abc123
 
 # Run E2E tests against local docker-compose services
 npm run docker:test:e2e
+# Or: npx tsx ci/main.ts test-e2e
 
-# Run all E2E tests against remote services
-docker run --rm \
-  -e API_URL=https://api.example.com \
-  -e WEB_URL=https://www.example.com \
-  tonys-chips-e2e:latest
+# Run against remote services by setting environment variables
+API_URL=https://api.example.com WEB_URL=https://www.example.com npm run docker:test:e2e
+# Or: API_URL=https://api.example.com WEB_URL=https://www.example.com npx tsx ci/main.ts test-e2e
 
-# Save test results and reports to local directory
+# Run directly with docker for custom options (save test results)
 docker run --rm \
   -e API_URL=https://api.example.com \
   -e WEB_URL=https://www.example.com \
