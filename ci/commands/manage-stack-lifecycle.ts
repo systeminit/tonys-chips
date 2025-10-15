@@ -89,7 +89,7 @@ class SystemInitiativeClient {
 
       if (actions.length === 0) {
         if (changeSet.status === 'Applied') {
-          console.log('✅ Change set applied with no actions.');
+          console.log('✅ Change set applied with no actions remaining.');
           return true;
         } else {
           console.log(`⏳ No actions found. Change set status: ${changeSet.status}. Waiting...`);
