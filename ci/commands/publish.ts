@@ -25,13 +25,14 @@ function runCommand(command: string, description: string): void {
   }
 }
 
-function parseConfig(args: string[]): Config {
-  if (args.length !== 2) {
-    throw new Error("Usage: publish <environment> <tag>\nExample: publish sandbox 20231201120000-abc1234");
+function parseConfig(args: string[]): Config & { components: string[] } {
+  if (args.length < 3) {
+    throw new Error("Usage: publish <environment> <component> <tag>\nExample: publish sandbox api 20231201120000-abc1234");
   }
   
   const environment = args[0];
-  const tag = args[1];
+  const componentArg = args[1];
+  const tag = args[2];
   const region = process.env.AWS_REGION || "us-west-2";
   
   const accountId = process.env.AWS_ACCOUNT_ID;
@@ -41,7 +42,17 @@ function parseConfig(args: string[]): Config {
   
   const ecrRegistry = `${accountId}.dkr.ecr.${region}.amazonaws.com`;
   
-  return { environment, tag, region, ecrRegistry, accountId };
+  // Parse component
+  const components = [];
+  if (componentArg === 'api') {
+    components.push('api');
+  } else if (componentArg === 'web') {
+    components.push('web');
+  } else {
+    throw new Error(`Invalid component: ${componentArg}. Must be 'api' or 'web'`);
+  }
+  
+  return { environment, tag, region, ecrRegistry, accountId, components };
 }
 
 async function loginToECR(config: Config): Promise<void> {
@@ -51,47 +62,48 @@ async function loginToECR(config: Config): Promise<void> {
   runCommand(loginCommand, "Logging into ECR");
 }
 
-async function pushImages(config: Config): Promise<void> {
-  const apiRepoName = process.env.ECR_API_REPO;
-  const webRepoName = process.env.ECR_WEB_REPO;
+async function pushImages(config: Config & { components: string[] }): Promise<void> {
+  const publishedImages: string[] = [];
   
-  if (!apiRepoName) {
-    throw new Error("ECR_API_REPO environment variable not found. Please specify the ECR repository name for the API.");
+  // Push API images if requested
+  if (config.components.includes('api')) {
+    const apiRepoName = process.env.ECR_API_REPO;
+    
+    if (!apiRepoName) {
+      throw new Error("ECR_API_REPO environment variable not found. Please specify the ECR repository name for the API.");
+    }
+    
+    const apiImage = `${config.ecrRegistry}/${apiRepoName}`;
+    
+    runCommand(
+      `docker push ${apiImage}:${config.tag}`,
+      "Pushing API image with tag"
+    );
+    
+    publishedImages.push(`API: ${apiImage}:${config.tag}`);
   }
   
-  if (!webRepoName) {
-    throw new Error("ECR_WEB_REPO environment variable not found. Please specify the ECR repository name for the Web app.");
+  // Push Web images if requested
+  if (config.components.includes('web')) {
+    const webRepoName = process.env.ECR_WEB_REPO;
+    
+    if (!webRepoName) {
+      throw new Error("ECR_WEB_REPO environment variable not found. Please specify the ECR repository name for the Web app.");
+    }
+    
+    const webImage = `${config.ecrRegistry}/${webRepoName}`;
+    
+    runCommand(
+      `docker push ${webImage}:${config.tag}`,
+      "Pushing Web image with tag"
+    );
+    
+    publishedImages.push(`Web: ${webImage}:${config.tag}`);
   }
-  
-  const apiImage = `${config.ecrRegistry}/${apiRepoName}`;
-  const webImage = `${config.ecrRegistry}/${webRepoName}`;
-  
-  // Push API images
-  runCommand(
-    `docker push ${apiImage}:${config.tag}`,
-    "Pushing API image with tag"
-  );
-  
-  runCommand(
-    `docker push ${apiImage}:latest`,
-    "Pushing API image as latest"
-  );
-  
-  // Push Web images
-  runCommand(
-    `docker push ${webImage}:${config.tag}`,
-    "Pushing Web image with tag"
-  );
-  
-  runCommand(
-    `docker push ${webImage}:latest`,
-    "Pushing Web image as latest"
-  );
   
   console.log("");
   console.log("🎉 Successfully published images:");
-  console.log(`   API: ${apiImage}:${config.tag}`);
-  console.log(`   Web: ${webImage}:${config.tag}`);
+  publishedImages.forEach(image => console.log(`   ${image}`));
 }
 
 export async function publish(args: string[]): Promise<void> {
@@ -102,6 +114,7 @@ export async function publish(args: string[]): Promise<void> {
   console.log(`📋 Configuration:`);
   console.log(`   Environment: ${config.environment}`);
   console.log(`   Tag: ${config.tag}`);
+  console.log(`   Components: ${config.components.join(', ')}`);
   console.log(`   Region: ${config.region}`);
   console.log(`   ECR Registry: ${config.ecrRegistry}`);
   console.log("");
