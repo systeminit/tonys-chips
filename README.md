@@ -230,7 +230,7 @@ npm run docker:test:e2e
 docker run --rm \
   -e API_URL=https://api.example.com \
   -e WEB_URL=https://www.example.com \
-  tonys-chips-e2e:latest
+  tonys-chips/e2e:latest
 
 # Save test results locally
 docker run --rm \
@@ -238,7 +238,7 @@ docker run --rm \
   -e WEB_URL=https://www.example.com \
   -v $(pwd)/test-results:/app/test-results \
   -v $(pwd)/playwright-report:/app/playwright-report \
-  tonys-chips-e2e:latest
+  tonys-chips/e2e:latest
 ```
 
 **What's tested:**
@@ -280,7 +280,7 @@ npm run test:e2e
 docker run --rm \
   -e API_URL=https://api-staging.example.com \
   -e WEB_URL=https://staging.example.com \
-  tonys-chips-e2e:latest
+  tonys-chips/e2e:latest
 ```
 
 ### Building for Production
@@ -290,9 +290,9 @@ docker run --rm \
 npm run build:local
 
 # Or build directly with docker
-docker build -f docker/api.Dockerfile -t tonys-chips-api:latest .
-docker build -f docker/web.Dockerfile -t tonys-chips-web:latest .
-docker build -f docker/e2e.Dockerfile -t tonys-chips-e2e:latest .
+docker build -f docker/api.Dockerfile -t tonys-chips/api:latest .
+docker build -f docker/web.Dockerfile -t tonys-chips/web:latest .
+docker build -f docker/e2e.Dockerfile -t tonys-chips/e2e:latest .
 
 # Build locally (native)
 npm run build --workspace=@chips/api

@@ -21,7 +21,7 @@ services:
       - chips-network
 
   api:
-    image: tonys-chips-api:${IMAGE_TAG:-latest}
+    image: tonys-chips/api:${IMAGE_TAG:-latest}
     container_name: tonys-chips-api
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/tonys_chips
@@ -37,7 +37,7 @@ services:
       - chips-network
 
   web:
-    image: tonys-chips-web:${IMAGE_TAG:-latest}
+    image: tonys-chips/web:${IMAGE_TAG:-latest}
     container_name: tonys-chips-web
     environment:
       API_URL: http://api:3000
