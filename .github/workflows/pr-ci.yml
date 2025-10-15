@@ -98,3 +98,15 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION }}
           ECR_API_REPO: ${{ vars.ECR_API_REPO }}
           ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+
+  deploy-stack:
+    name: Deploy Stack
+    needs: [build-and-publish, generate-tag]
+    uses: ./.github/workflows/manage-stack.yml
+    with:
+      operation: up
+      version: ${{ needs.generate-tag.outputs.tag }}
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write

@@ -1,0 +1,139 @@
+name: Manage Remote Stack Lifecycle
+
+on:
+  workflow_call:
+    inputs:
+      operation:
+        description: 'Stack operation (up or down)'
+        required: true
+        type: string
+      version:
+        description: 'Version/tag for the stack'
+        required: true
+        type: string
+      environment:
+        description: 'Environment context for secrets/variables'
+        required: false
+        type: string
+        default: 'sandbox'
+  
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Stack operation'
+        required: true
+        type: choice
+        options:
+          - up
+          - down
+        default: up
+      version:
+        description: 'Version/tag for the stack (e.g., 20241015.143022.0-sha.abc1234) - leave empty to generate a new one'
+        required: false
+        type: string
+      environment:
+        description: 'Environment context for stack management'
+        required: false
+        type: choice
+        options:
+          - sandbox
+          - preproduction
+          - production
+        default: sandbox
+
+jobs:
+  manage-stack:
+    name: ${{ inputs.operation == 'up' && 'Deploy' || 'Teardown' }} Stack
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Generate version if needed
+        id: version
+        run: |
+          if [[ -z "${{ inputs.version }}" ]]; then
+            echo "🏷️  No version provided, generating new calver tag..."
+            VERSION=$(npm run ci:calver --silent | tail -n 1)
+            echo "Generated version: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate inputs
+        run: |
+          if [[ ! "${{ inputs.operation }}" =~ ^(up|down)$ ]]; then
+            echo "❌ Invalid operation: ${{ inputs.operation }}. Must be 'up' or 'down'"
+            exit 1
+          fi
+          
+          if [[ -z "${{ steps.version.outputs.version }}" ]]; then
+            echo "❌ Version could not be determined"
+            exit 1
+          fi
+          
+          echo "✅ Operation: ${{ inputs.operation }}"
+          echo "✅ Version: ${{ steps.version.outputs.version }}"
+          echo "✅ Environment: ${{ inputs.environment }}"
+
+      - name: ${{ inputs.operation == 'up' && 'Deploy' || 'Teardown' }} stack
+        run: npm run ci:manage-stack-lifecycle -- ${{ inputs.operation }} ${{ steps.version.outputs.version }}
+        env:
+          SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
+          SI_WORKSPACE_ID: ${{ vars.SI_WORKSPACE_ID }}
+
+      - name: Upload stack artifacts (deployment only)
+        if: inputs.operation == 'up'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stack-deployment-${{ steps.version.outputs.version }}
+          path: |
+            ip
+            error
+          if-no-files-found: ignore
+
+      - name: Post deployment info to PR
+        if: inputs.operation == 'up'
+        run: npm run ci:post-to-pr -- new-environment ${{ github.sha }} ${{ steps.version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Output deployment info
+        if: inputs.operation == 'up'
+        run: |
+          if [ -f "ip" ]; then
+            echo "🚀 Stack deployed successfully!"
+            echo "📍 Public IP: $(cat ip)"
+            echo "🏷️  Version: ${{ steps.version.outputs.version }}"
+          fi
+          
+          if [ -f "error" ]; then
+            echo "❌ Deployment encountered errors:"
+            cat error
+          fi
+
+      - name: Output teardown info
+        if: inputs.operation == 'down'
+        run: |
+          echo "🔥 Teardown operation completed for version ${{ steps.version.outputs.version }}"
+          
+          if [ -f "error" ]; then
+            echo "❌ Teardown encountered errors:"
+            cat error
+          fi

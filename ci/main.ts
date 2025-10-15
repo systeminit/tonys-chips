@@ -10,6 +10,8 @@ import { checkPostgres } from './commands/check-postgres.js';
 import { build } from './commands/build.js';
 import { publish } from './commands/publish.js';
 import { pushImage } from './commands/push-image.js';
+import { manageStackLifecycle } from './commands/manage-stack-lifecycle.js';
+import { postToPr } from './commands/post-to-pr.js';
 
 interface Command {
   name: string;
@@ -48,6 +50,18 @@ const commands: Command[] = [
     description: "Build and push both Docker images to ECR (combined)",
     usage: "push-image <environment> <tag>",
     execute: pushImage,
+  },
+  {
+    name: "manage-stack-lifecycle",
+    description: "Manage System Initiative environment stack lifecycle (up/down)",
+    usage: "manage-stack-lifecycle <up|down> <version>",
+    execute: manageStackLifecycle,
+  },
+  {
+    name: "post-to-pr",
+    description: "Post various content to GitHub PR with subcommands",
+    usage: "post-to-pr <subcommand> [args...]",
+    execute: postToPr,
   },
 ];
 
