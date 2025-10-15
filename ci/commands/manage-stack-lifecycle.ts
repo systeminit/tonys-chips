@@ -95,6 +95,7 @@ class SystemInitiativeClient {
           console.log(`⏳ No actions found. Change set status: ${changeSet.status}. Waiting...`);
         }
       } else {
+
         const states = actions.map((action: any) => action.state);
         
         if (states.every((state: string) => state === 'Success')) {
