@@ -106,6 +106,7 @@ jobs:
     with:
       operation: up
       version: ${{ needs.generate-tag.outputs.tag }}
+      pr_number: ${{ github.event.pull_request.number }}
     secrets: inherit
     permissions:
       contents: read

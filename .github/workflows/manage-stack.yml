@@ -16,6 +16,10 @@ on:
         required: false
         type: string
         default: 'sandbox'
+      pr_number:
+        description: 'PR number for posting deployment info (optional - no comment if not provided)'
+        required: false
+        type: string
   
   workflow_dispatch:
     inputs:
@@ -40,6 +44,10 @@ on:
           - preproduction
           - production
         default: sandbox
+      pr_number:
+        description: 'PR number for posting deployment info (optional - no comment if not provided)'
+        required: false
+        type: string
 
 jobs:
   manage-stack:
@@ -108,8 +116,8 @@ jobs:
           if-no-files-found: ignore
 
       - name: Post deployment info to PR
-        if: inputs.operation == 'up'
-        run: npm run ci:post-to-pr -- new-environment ${{ github.sha }} ${{ steps.version.outputs.version }}
+        if: inputs.operation == 'up' && inputs.pr_number != ''
+        run: npm run ci:post-to-pr -- new-environment ${{ inputs.pr_number }} ${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

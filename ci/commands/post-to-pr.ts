@@ -153,15 +153,23 @@ class GitHubClient {
 async function handleNewEnvironment(args: string[]): Promise<void> {
   if (args.length < 2) {
     console.error("❌ Missing required arguments for new-environment");
-    console.error("Usage: post-to-pr new-environment <commit-sha> <version> [endpoint]");
-    console.error("Example: post-to-pr new-environment abc1234 20241015.143022.0-sha.abc1234 52.1.2.3");
+    console.error("Usage: post-to-pr new-environment <pr-number> <version> [endpoint]");
+    console.error("Example: post-to-pr new-environment 123 20241015.143022.0-sha.abc1234 52.1.2.3");
     process.exit(1);
   }
 
-  const [commitSha, version, endpoint] = args;
+  const [prNumberStr, version, endpoint] = args;
+  
+  // Validate PR number
+  if (!/^\d+$/.test(prNumberStr)) {
+    console.error(`❌ Invalid PR number: ${prNumberStr}. Must be a positive integer.`);
+    process.exit(1);
+  }
+  
+  const prNumber = parseInt(prNumberStr, 10);
   
   console.log("📝 Posting new environment info to GitHub PR");
-  console.log(`📋 Commit: ${commitSha}`);
+  console.log(`📋 PR Number: ${prNumber}`);
   console.log(`📋 Version: ${version}`);
   if (endpoint) {
     console.log(`📋 Endpoint: ${endpoint}`);
@@ -194,13 +202,6 @@ async function handleNewEnvironment(args: string[]): Promise<void> {
   }
 
   const client = new GitHubClient();
-  
-  // Find the PR for this commit
-  const prNumber = await client.findPRForCommit(commitSha);
-  if (!prNumber) {
-    console.log("ℹ️  No PR found for this commit - skipping comment");
-    return;
-  }
 
   // Create unique identifier for this comment type
   const commentIdentifier = `new-environment-${version}`;
@@ -293,12 +294,12 @@ export async function postToPr(args: string[]): Promise<void> {
     console.error("Usage: post-to-pr <subcommand> [args...]");
     console.error("");
     console.error("Available subcommands:");
-    console.error("  new-environment <commit-sha> <version> [endpoint]");
+    console.error("  new-environment <pr-number> <version> [endpoint]");
     console.error("    Post new environment deployment info to PR");
     console.error("");
     console.error("Examples:");
-    console.error("  post-to-pr new-environment abc1234 20241015.143022.0-sha.abc1234");
-    console.error("  post-to-pr new-environment abc1234 20241015.143022.0-sha.abc1234 52.1.2.3");
+    console.error("  post-to-pr new-environment 123 20241015.143022.0-sha.abc1234");
+    console.error("  post-to-pr new-environment 123 20241015.143022.0-sha.abc1234 52.1.2.3");
     process.exit(1);
   }
 
