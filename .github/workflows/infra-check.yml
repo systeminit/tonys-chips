@@ -1,0 +1,46 @@
+name: Infrastructure Check
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment to check (also used as GitHub environment context)'
+        required: true
+        type: string
+      pr_number:
+        description: 'PR number for posting failure info (optional - no comment if not provided)'
+        required: false
+        type: string
+
+jobs:
+  infra-check:
+    name: Check Infrastructure Flags
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run InfraFlags check
+        env:
+          SI_WORKSPACE_ID: ${{ vars.SI_WORKSPACE_ID }}
+          SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
+          SI_API_ENDPOINT: "https://api.systeminit.com"
+          APPLICATION_NAME: "tonys-chips"
+          PR_NUMBER: ${{ inputs.pr_number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: npm run ci:check-infraflags -- ${{ inputs.environment }}
