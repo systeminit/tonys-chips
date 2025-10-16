@@ -2,7 +2,15 @@ name: PR CI Pipeline
 
 on:
   pull_request:
-    branches: [ main ] 
+    branches: [ main ]
+    paths:
+      - 'packages/**'
+      - 'e2e/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'docker/**'
+      - 'playwright.config.ts'
+      - '.github/workflows/**' 
 
 jobs:
   lint:
