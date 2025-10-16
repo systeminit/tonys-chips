@@ -465,6 +465,10 @@ class SystemInitiativeClient {
       const userDataOptions = {
         attributes: {
           "/domain/userdataContent": userDataScript,
+          "/si/tags": {
+            "Key": "Branch",
+            "Value": branchName,
+          },
         },
         viewName: "Environments",
       };
@@ -686,10 +690,12 @@ class SystemInitiativeClient {
     }
   }
 
-  async searchComponentsByBranch(branchName: string): Promise<any[]> {
+  async searchComponentsByBranch(
+    branchName: string,
+    schema: string,
+  ): Promise<any[]> {
     const headChangesetId = await this.getHeadChangesetId();
-    const query =
-      `schema:AWS::EC2::Instance & Key:Branch & Value:${branchName}`;
+    const query = `schema:${schema} & Key:Branch & Value:${branchName}`;
     const url =
       `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${headChangesetId}/search?q=${
         encodeURIComponent(query)
@@ -744,17 +750,24 @@ class SystemInitiativeClient {
       console.log(`📋 Branch: ${branchName}`);
       console.log("");
 
-      // Search for components by branch name
-      const componentsToDelete = await this.searchComponentsByBranch(
+      // Search for instances by branch name
+      const instancesToDelete = await this.searchComponentsByBranch(
         branchName,
+        "AWS::EC2::Instance",
       );
 
-      if (componentsToDelete.length === 0) {
+      if (instancesToDelete.length === 0) {
         console.log(
           `✅ No components found for branch ${branchName} - nothing to clean up`,
         );
         return;
       }
+
+      // Search for userData components by branch name
+      const userDataComponentsToDelete = await this.searchComponentsByBranch(
+        branchName,
+        "Userdata",
+      );
 
       const changeSetName = `Teardown Branch ${branchName} - ${
         new Date().toISOString()
@@ -777,9 +790,23 @@ class SystemInitiativeClient {
         throw new Error("Failed to create change set");
       }
 
-      // Delete each component found
-      console.log(`🗑️  Deleting ${componentsToDelete.length} component(s)...`);
-      for (const comp of componentsToDelete) {
+      // Delete each instance found
+      console.log(`🗑️  Deleting ${instancesToDelete.length} component(s)...`);
+      for (const comp of instancesToDelete) {
+        console.log(`Deleting component: ${comp.name} (${comp.id})`);
+        try {
+          await this.deleteComponent(changeSetId, comp.id);
+          console.log(`✅ Component ${comp.name} queued for deletion`);
+        } catch (e) {
+          console.error(`❌ Failed to delete component ${comp.name}: ${e}`);
+        }
+      }
+
+      // Delete each userData found
+      console.log(
+        `🗑️  Deleting ${userDataComponentsToDelete.length} component(s)...`,
+      );
+      for (const comp of userDataComponentsToDelete) {
         console.log(`Deleting component: ${comp.name} (${comp.id})`);
         try {
           await this.deleteComponent(changeSetId, comp.id);
