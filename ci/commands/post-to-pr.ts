@@ -204,7 +204,8 @@ async function handleNewEnvironment(args: string[]): Promise<void> {
   const client = new GitHubClient();
 
   // Create unique identifier for this comment type
-  const commentIdentifier = `new-environment-${version}`;
+  // Use a static identifier so updates to the PR reuse the same comment
+  const commentIdentifier = `new-environment`;
 
   // Check for existing comment for this environment
   const existingCommentId = await client.findExistingComment(prNumber, commentIdentifier);
@@ -411,7 +412,17 @@ async function handleEnvironmentRefresh(args: string[]): Promise<void> {
   const client = new GitHubClient();
 
   // Create unique identifier for this comment type
-  const commentIdentifier = `environment-refresh-${branchName}-${Date.now()}`;
+  // Use a simple static identifier for all environment refreshes on this PR
+  const commentIdentifier = `environment-refresh`;
+
+  // Check for existing comment for this refresh
+  const existingCommentId = await client.findExistingComment(prNumber, commentIdentifier);
+
+  if (existingCommentId) {
+    console.log(`Found existing environment refresh comment with ID: ${existingCommentId}`);
+  } else {
+    console.log(`No existing environment refresh comment found`);
+  }
 
   // Create comment body
   const commentBody = `<!-- ${commentIdentifier} -->
@@ -431,8 +442,14 @@ The environment for branch \`${branchName}\` is being refreshed with the latest 
 
 > 💡 **Note:** This ensures you always have the latest changes in your test environment!`;
 
-  console.log(`Posting environment refresh comment to PR #${prNumber}`);
-  await client.postComment(prNumber, commentBody);
+  // Post or update comment
+  if (existingCommentId) {
+    console.log(`Updating existing refresh comment ID: ${existingCommentId}`);
+    await client.updateComment(existingCommentId, commentBody);
+  } else {
+    console.log(`Posting new environment refresh comment to PR #${prNumber}`);
+    await client.postComment(prNumber, commentBody);
+  }
 
   console.log("✅ Successfully posted environment refresh info to PR");
 }
