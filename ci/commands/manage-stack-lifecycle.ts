@@ -702,16 +702,30 @@ class SystemInitiativeClient {
   ): Promise<any[]> {
     const headChangesetId = await this.getHeadChangesetId();
     // Search for components by Branch tag (works for both /domain/Tags and /si/tags)
-    const query = `schema:${schema} & Key:Branch & Value:${branchName}`;
+    // Quote the branch name to handle special characters like hyphens
+    const query = `schema:${schema} & Key:Branch & Value:"${branchName}"`;
     const url =
       `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${headChangesetId}/search?q=${
         encodeURIComponent(query)
       }`;
 
+    console.log(`Searching with query: ${query}`);
+    console.log(`Encoded URL: ${url}`);
+
     try {
       const response = await this.fetch(url);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Search API error response: ${errorText}`);
+
+        // If the error is about change set index not found, treat as no components found
+        if (response.status === 500 && errorText.includes('change set index not found')) {
+          console.warn(`⚠️  Change set index not found - treating as no components found`);
+          console.warn(`   This may happen if the change set was recently created`);
+          return [];
+        }
+
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 

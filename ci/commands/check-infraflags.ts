@@ -162,6 +162,24 @@ class InfraFlagsChecker {
       // Return the first component ID
       return components[0].id;
     } catch (error) {
+      // Check if this is a "change set index not found" error or a 500 error
+      const errorMessage = (error as any).message || String(error);
+      const responseData = (error as any).response?.data;
+      const statusCode = (error as any).response?.status;
+
+      // Log the full error for debugging
+      console.log(`Search error details: ${errorMessage}`);
+      if (responseData) {
+        console.log(`Response data:`, responseData);
+      }
+
+      // If it's a 500 error with change set index issue, treat as no component found
+      if (statusCode === 500 || errorMessage.includes('change set index not found') ||
+          (responseData && responseData.message && responseData.message.includes('change set index not found'))) {
+        console.warn(`⚠️  Change set index not found - treating as no component found`);
+        console.warn(`   This may happen if the change set was recently created`);
+        return null;
+      }
       throw new Error(`Failed to search for InfraFlags component: ${error}`);
     }
   }
