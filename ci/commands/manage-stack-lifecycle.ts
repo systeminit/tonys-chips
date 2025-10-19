@@ -391,9 +391,15 @@ class SystemInitiativeClient {
       console.log(
         `🔍 Checking for existing components for branch ${branchName}...`,
       );
-      const existingComponents = await this.searchComponentsByBranch(
+      const existingInstances = await this.searchComponentsByBranch(
         branchName,
+        "AWS::EC2::Instance",
       );
+      const existingUserData = await this.searchComponentsByBranch(
+        branchName,
+        "Userdata",
+      );
+      const existingComponents = [...existingInstances, ...existingUserData];
 
       if (existingComponents.length > 0) {
         console.log(
@@ -695,6 +701,7 @@ class SystemInitiativeClient {
     schema: string,
   ): Promise<any[]> {
     const headChangesetId = await this.getHeadChangesetId();
+    // Search for components by Branch tag (works for both /domain/Tags and /si/tags)
     const query = `schema:${schema} & Key:Branch & Value:${branchName}`;
     const url =
       `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${headChangesetId}/search?q=${
@@ -712,7 +719,7 @@ class SystemInitiativeClient {
       const components = searchData.components || [];
 
       console.log(
-        `Found ${components.length} component(s) for branch ${branchName}`,
+        `Found ${components.length} ${schema} component(s) for branch ${branchName}`,
       );
       for (const comp of components) {
         console.log(`  - ${comp.name} (${comp.id})`);
