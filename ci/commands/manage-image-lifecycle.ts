@@ -36,17 +36,18 @@ class ImageLifecycleManager {
 
   constructor(environment: Environment, tag: string) {
     const region = process.env.AWS_REGION || "us-west-2";
-    const accountId = process.env.AWS_ACCOUNT_ID;
-    
-    if (!accountId) {
-      throw new Error("AWS_ACCOUNT_ID environment variable not found. Make sure AWS credentials are configured.");
-    }
-
-    const ecrRegistry = `${accountId}.dkr.ecr.${region}.amazonaws.com`;
+    const accountId = process.env.AWS_ACCOUNT_ID || "";
+    const ecrRegistry = accountId ? `${accountId}.dkr.ecr.${region}.amazonaws.com` : "";
     const viteApiUrl = process.env.VITE_API_URL || "http://localhost:3000";
 
     this.config = { environment, tag, region, accountId, ecrRegistry };
     this.buildConfig = { ...this.config, viteApiUrl };
+  }
+
+  private validateAwsCredentials(): void {
+    if (!this.config.accountId) {
+      throw new Error("AWS_ACCOUNT_ID environment variable not found. Make sure AWS credentials are configured.");
+    }
   }
 
   private runCommand(command: string, description: string): void {
@@ -113,6 +114,7 @@ class ImageLifecycleManager {
   }
 
   async buildImage(component: Component): Promise<string> {
+    this.validateAwsCredentials();
     const manifest = this.getImageManifest(component);
     
     let buildCommand = `docker build -f ${manifest.dockerfile}`;
@@ -132,6 +134,7 @@ class ImageLifecycleManager {
   }
 
   async publishImage(component: Component): Promise<string> {
+    this.validateAwsCredentials();
     const manifest = this.getImageManifest(component);
     
     this.runCommand(
