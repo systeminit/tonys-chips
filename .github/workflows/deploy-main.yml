@@ -44,6 +44,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [generate-tag]
     environment: shared
+    permissions:
+      id-token: write
+      contents: read
     env:
       AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
       AWS_REGION: ${{ vars.AWS_REGION }}
