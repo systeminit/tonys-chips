@@ -152,11 +152,9 @@ class ImageLifecycleManager {
   }
 
   async deployImage(component: Component): Promise<string> {
-    const manifest = this.getImageManifest(component);
     let changeSetId: string | null = null;
     
     console.log(`🚀 Starting deployment for ${component.toUpperCase()}`);
-    console.log(`   Image: ${manifest.remoteImage}`);
     console.log(`   Environment: ${this.config.environment}`);
     console.log(`   Tag: ${this.config.tag}`);
     
