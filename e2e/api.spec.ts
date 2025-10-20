@@ -20,6 +20,59 @@ test.describe('API Health', () => {
   });
 });
 
+test.describe('Database Health Check', () => {
+  test('should respond to database health check endpoint', async ({ request }) => {
+    const response = await request.get('/health/db');
+    expect(response.ok()).toBeTruthy();
+    expect(response.status()).toBe(200);
+  });
+
+  test('should return healthy status with database connected', async ({ request }) => {
+    const response = await request.get('/health/db');
+    const body = await response.json();
+
+    expect(body).toHaveProperty('status', 'healthy');
+    expect(body).toHaveProperty('database', 'connected');
+    expect(body).toHaveProperty('authMethod');
+    expect(['IAM', 'password']).toContain(body.authMethod);
+  });
+
+  test('should return JSON content-type for database health check', async ({ request }) => {
+    const response = await request.get('/health/db');
+    expect(response.headers()['content-type']).toContain('application/json');
+  });
+
+  test('should include all required fields in healthy response', async ({ request }) => {
+    const response = await request.get('/health/db');
+    const body = await response.json();
+
+    expect(body).toHaveProperty('status');
+    expect(body).toHaveProperty('database');
+    expect(body).toHaveProperty('authMethod');
+  });
+
+  test('should respond quickly to database health check', async ({ request }) => {
+    const startTime = Date.now();
+    const response = await request.get('/health/db');
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    expect(response.ok()).toBeTruthy();
+    expect(duration).toBeLessThan(2000); // Should respond within 2 seconds
+  });
+
+  test('should handle multiple concurrent database health checks', async ({ request }) => {
+    const promises = Array.from({ length: 5 }, () =>
+      request.get('/health/db')
+    );
+
+    const responses = await Promise.all(promises);
+    responses.forEach(response => {
+      expect(response.ok()).toBeTruthy();
+    });
+  });
+});
+
 test.describe('Product Endpoints', () => {
   test('should list all products', async ({ request }) => {
     const response = await request.get('/api/products');

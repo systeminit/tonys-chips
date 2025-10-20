@@ -21,6 +21,26 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/health/db', async (req, res) => {
+  try {
+    const prisma = await getPrismaClient();
+    // Simple query to test database connectivity
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'healthy',
+      database: 'connected',
+      authMethod: process.env.DB_USE_IAM_AUTH === 'true' ? 'IAM' : 'password'
+    });
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      database: 'disconnected',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // API Routes
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
@@ -33,13 +53,43 @@ app.use(errorHandler);
 async function start() {
   try {
     // Initialize Prisma client (this will fetch secrets if needed)
-    await getPrismaClient();
+    const prisma = await getPrismaClient();
     console.log('Database connection initialized');
 
     // Start server
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Server listening on port ${PORT}`);
     });
+
+    // Graceful shutdown handlers
+    const gracefulShutdown = async (signal: string) => {
+      console.log(`${signal} received, shutting down gracefully`);
+
+      // Stop accepting new connections
+      server.close(async () => {
+        console.log('HTTP server closed');
+
+        // Disconnect Prisma client
+        try {
+          await prisma.$disconnect();
+          console.log('Database connection closed');
+          process.exit(0);
+        } catch (error) {
+          console.error('Error during database disconnect:', error);
+          process.exit(1);
+        }
+      });
+
+      // Force shutdown after 10 seconds
+      setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
