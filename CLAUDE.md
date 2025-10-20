@@ -51,26 +51,19 @@ npx prisma generate                    # Generate Prisma Client
 # Local build commands (uses CI orchestration)
 npm run build:local          # Build API, web, and E2E images with latest tag
 
+# CI npm scripts (for use in GitHub Actions or manual deployment)
+npm run ci:manage-image-lifecycle  # Unified image lifecycle management
+
 # Or use CI commands directly for granular control
 npx tsx ci/main.ts build-local all    # Build all images (api + web + e2e)
 npx tsx ci/main.ts build-local api    # Build only API image
 npx tsx ci/main.ts build-local web    # Build only web image
 npx tsx ci/main.ts build-local e2e    # Build only E2E test image
 
-# CI/Deployment build commands (with specific tags)
-npx tsx ci/main.ts build <environment> api <tag>     # Build API for deployment
-npx tsx ci/main.ts build <environment> web <tag>     # Build web for deployment
-npx tsx ci/main.ts build <environment> e2e <tag>     # Build E2E for deployment
-
-# Publish to ECR
-npx tsx ci/main.ts publish <environment> api <tag>   # Publish API to ECR
-npx tsx ci/main.ts publish <environment> web <tag>   # Publish web to ECR
-npx tsx ci/main.ts publish <environment> e2e <tag>   # Publish E2E to ECR
-
-# Build and publish combined (convenience)
-npx tsx ci/main.ts push-image <environment> api <tag>  # Build + publish API
-npx tsx ci/main.ts push-image <environment> web <tag>  # Build + publish web
-npx tsx ci/main.ts push-image <environment> e2e <tag>  # Build + publish E2E
+# Image Lifecycle Management Commands (CI/Deployment with specific tags)
+npx tsx ci/main.ts manage-image-lifecycle build <environment> <component> <tag>    # Build only
+npx tsx ci/main.ts manage-image-lifecycle publish <environment> <component> <tag>  # Publish only
+npx tsx ci/main.ts manage-image-lifecycle deploy <environment> <component> <tag>   # Deploy (unimplemented)
 
 # Docker Compose orchestration (direct docker-compose commands)
 npm run docker:up            # Start services using latest tag (foreground)

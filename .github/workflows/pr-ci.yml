@@ -105,7 +105,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Build ${{ matrix.component }} image
-        run: npm run ci:build --silent -- sandbox ${{ matrix.component }} ${{ needs.generate-tag.outputs.tag }}
+        run: npm run ci:manage-image-lifecycle --silent -- build sandbox ${{ matrix.component }} ${{ needs.generate-tag.outputs.tag }}
         env:
           AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
           AWS_REGION: ${{ vars.AWS_REGION }}
@@ -115,13 +115,13 @@ jobs:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       - name: Publish ${{ matrix.component }} image
-        run: npm run ci:publish --silent -- sandbox ${{ matrix.component }} ${{ needs.generate-tag.outputs.tag }}
+        run: npm run ci:manage-image-lifecycle --silent -- publish sandbox ${{ matrix.component }} ${{ needs.generate-tag.outputs.tag }}
         env:
           AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
           AWS_REGION: ${{ vars.AWS_REGION }}
           ECR_API_REPO: ${{ vars.ECR_API_REPO }}
-          ECR_E2E_REPO: ${{ vars.ECR_E2E_REPO }}
           ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+          ECR_E2E_REPO: ${{ vars.ECR_E2E_REPO }}
 
   deploy-refresh-stack:
     name: Deploy/Refresh Stack
