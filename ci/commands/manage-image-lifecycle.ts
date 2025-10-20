@@ -276,14 +276,20 @@ class ImageLifecycleManager {
 
 // Main unified interface
 export async function manageImageLifecycle(args: string[]): Promise<void> {
-  if (args.length < 4) {
-    throw new Error("Usage: manage-image-lifecycle <action> <environment> <component> <tag>\nExample: manage-image-lifecycle build sandbox api 20231201120000-abc1234");
-  }
-
   const action = args[0] as ImageAction;
+  const minArgs = action === 'deploy' ? 3 : 4;
+  
+  if (args.length < minArgs) {
+    if (action === 'deploy') {
+      throw new Error("Usage: manage-image-lifecycle deploy <environment> <tag>\nExample: manage-image-lifecycle deploy sandbox 20231201120000-abc1234");
+    } else {
+      throw new Error("Usage: manage-image-lifecycle <action> <environment> <component> <tag>\nExample: manage-image-lifecycle build sandbox api 20231201120000-abc1234");
+    }
+  }
+  
   const environment = args[1] as Environment;
-  const componentArg = args[2];
-  const tag = args[3];
+  const componentArg = action === 'deploy' ? 'all' : args[2];
+  const tag = action === 'deploy' ? args[2] : args[3];
   
   if (!['build', 'publish', 'push', 'deploy'].includes(action)) {
     throw new Error(`Invalid action: ${action}. Must be 'build', 'publish', 'push', or 'deploy'`);
@@ -293,11 +299,24 @@ export async function manageImageLifecycle(args: string[]): Promise<void> {
     throw new Error(`Invalid environment: ${environment}. Must be 'sandbox', 'dev', 'preprod', 'prod', 'pr', or 'shared'`);
   }
 
-  if (!['api', 'web', 'e2e'].includes(componentArg)) {
-    throw new Error(`Invalid component: ${componentArg}. Must be 'api', 'web', or 'e2e'`);
+  if (!['api', 'web', 'e2e', 'all'].includes(componentArg)) {
+    throw new Error(`Invalid component: ${componentArg}. Must be 'api', 'web', 'e2e', or 'all'`);
   }
 
-  const component = componentArg as Component;
   const manager = new ImageLifecycleManager(environment, tag);
-  await manager.executeAction(action, [component]);
+  
+  if (action === 'deploy') {
+    // Deploy always handles all components - no need to specify
+    const allComponents: Component[] = ['api', 'web', 'e2e'];
+    await manager.executeAction(action, allComponents);
+  } else {
+    // For build/publish, handle individual or all components
+    if (componentArg === 'all') {
+      const allComponents: Component[] = ['api', 'web', 'e2e'];
+      await manager.executeAction(action, allComponents);
+    } else {
+      const component = componentArg as Component;
+      await manager.executeAction(action, [component]);
+    }
+  }
 }

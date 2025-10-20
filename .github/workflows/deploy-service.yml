@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Deploy to ${{ inputs.environment }}
-        run: npm run ci:manage-image-lifecycle deploy ${{ inputs.environment }} all ${{ inputs.tag }}
+        run: npm run ci:manage-image-lifecycle deploy ${{ inputs.environment }} ${{ inputs.tag }}
         env:
           SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
           SI_WORKSPACE_ID: ${{ secrets.SI_WORKSPACE_ID }}
