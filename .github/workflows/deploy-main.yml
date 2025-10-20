@@ -1,0 +1,130 @@
+name: Deploy Main Branch
+
+on:
+  push:
+    branches: [main, feat/ecs-task-update]
+    paths:
+      - "packages/**"
+      - "docker/**"
+      - "ci/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/**"
+
+jobs:
+  generate-tag:
+    name: Generate Deployment Tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Generate deployment tag
+        id: tag
+        run: |
+          TAG=$(npm run ci:calver --silent | tail -n 1)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Generated deployment tag: $TAG"
+
+
+  build-and-push:
+    name: Build & Push ${{ matrix.component }}
+    runs-on: ubuntu-latest
+    needs: [generate-tag]
+    environment: shared
+    env:
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_API_REPO: ${{ vars.ECR_API_REPO }}
+      ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+      ECR_E2E_REPO: ${{ vars.ECR_E2E_REPO }}
+      VITE_API_URL: ${{ vars.VITE_API_URL }}
+
+    strategy:
+      matrix:
+        component: [api, web, e2e]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Build ${{ matrix.component }} image
+        run: |
+          echo "🔨 Building ${{ matrix.component }} image..."
+          npm run ci:manage-image-lifecycle build shared ${{ matrix.component }} ${{ needs.generate-tag.outputs.tag }}
+
+      - name: Publish ${{ matrix.component }} image
+        run: |
+          echo "📤 Publishing ${{ matrix.component }} image..."
+          npm run ci:manage-image-lifecycle publish shared ${{ matrix.component }} ${{ needs.generate-tag.outputs.tag }}
+
+  deploy-service:
+    name: Deploy to sandbox
+    needs: [generate-tag, build-and-push]
+    uses: ./.github/workflows/deploy-service.yml
+    with:
+      environment: sandbox
+      tag: ${{ needs.generate-tag.outputs.tag }}
+    secrets: inherit
+    permissions:
+      contents: read
+      id-token: write
+
+  post-deployment:
+    name: Post-Deployment Actions
+    runs-on: ubuntu-latest
+    needs: [deploy-service, generate-tag]
+    if: always()
+
+    steps:
+      - name: Post deployment summary
+        run: |
+          echo "## 🎉 Main Branch Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** main" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** sandbox" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** ${{ needs.generate-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Components:** api, web, e2e" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.deploy-service.result }}" == "success" ]]; then
+            echo "✅ **Status:** Deployment successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🌐 **Services deployed to ${{ needs.generate-tag.outputs.environment }}**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Deployment failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the deployment logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** push to main" >> $GITHUB_STEP_SUMMARY

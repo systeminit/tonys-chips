@@ -1,0 +1,63 @@
+name: Deploy Service
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment for deployment'
+        required: true
+        type: string
+      tag:
+        description: 'Image tag to deploy'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.component }} to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      matrix:
+        component: [api, web, e2e]
+        include:
+          - component: api
+            display_name: "API Service"
+          - component: web
+            display_name: "Web Application"
+          - component: e2e
+            display_name: "E2E Tests"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy ${{ matrix.component }} to ${{ inputs.environment }}
+        run: npm run ci:manage-image-lifecycle deploy ${{ inputs.environment }} ${{ matrix.component }} ${{ inputs.tag }}
+        env:
+          SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
+          SI_WORKSPACE_ID: ${{ secrets.SI_WORKSPACE_ID }}
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          ECR_API_REPO: ${{ vars.ECR_API_REPO }}
+          ECR_WEB_REPO: ${{ vars.ECR_WEB_REPO }}
+          ECR_E2E_REPO: ${{ vars.ECR_E2E_REPO }}
