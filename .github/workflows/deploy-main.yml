@@ -2,7 +2,7 @@ name: Deploy Main Branch
 
 on:
   push:
-    branches: [main, feat/implement-deploy-on-main]
+    branches: [main]
     paths:
       - "packages/**"
       - "docker/**"
