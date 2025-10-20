@@ -205,7 +205,7 @@ class ImageLifecycleManager {
       console.log(`✅ Change set applied successfully`);
       console.log(`🎉 Deployment complete for ${component.toUpperCase()}`);
       
-      return manifest.remoteImage;
+      return `Deployed ${component} with tag ${this.config.tag}`;
       
     } catch (error) {
       console.error(`❌ Deployment failed for ${component.toUpperCase()}: ${error}`);

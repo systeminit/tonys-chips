@@ -35,4 +35,4 @@ jobs:
         run: npm run ci:manage-image-lifecycle deploy ${{ inputs.environment }} ${{ inputs.tag }}
         env:
           SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
-          SI_WORKSPACE_ID: ${{ secrets.SI_WORKSPACE_ID }}
+          SI_WORKSPACE_ID: ${{ vars.SI_WORKSPACE_ID }}
