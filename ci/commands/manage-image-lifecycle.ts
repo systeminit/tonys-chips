@@ -5,6 +5,186 @@
 
 import { execSync } from 'child_process';
 
+class SystemInitiativeClient {
+  private apiToken: string;
+  private workspaceId: string;
+  private apiUrl = "https://api.systeminit.com";
+
+  constructor() {
+    this.apiToken = process.env.SI_API_TOKEN || "";
+    this.workspaceId = process.env.SI_WORKSPACE_ID || "";
+
+    if (!this.apiToken || !this.workspaceId) {
+      throw new Error(
+        "Missing required environment variables: SI_API_TOKEN or SI_WORKSPACE_ID"
+      );
+    }
+  }
+
+  private get headers() {
+    return {
+      "Authorization": `Bearer ${this.apiToken}`,
+      "Content-Type": "application/json",
+    };
+  }
+
+  private async fetch(
+    url: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...this.headers,
+        ...options.headers,
+      },
+    });
+    return response;
+  }
+
+  async createChangeSet(name: string): Promise<any> {
+    try {
+      const response = await this.fetch(
+        `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets`,
+        {
+          method: "POST",
+          body: JSON.stringify({ changeSetName: name }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText} - ${errorText}`
+        );
+      }
+
+      return await response.json();
+    } catch (e) {
+      throw new Error(`Failed to create change set '${name}': ${e}`);
+    }
+  }
+
+  async findComponentByName(changeSetId: string, componentName: string): Promise<any> {
+    try {
+      const response = await this.fetch(
+        `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${changeSetId}/components/find?component=${encodeURIComponent(componentName)}`
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText} - ${errorText}`
+        );
+      }
+
+      const data = await response.json() as any;
+      return data.component || null;
+    } catch (e) {
+      throw new Error(`Failed to find component '${componentName}': ${e}`);
+    }
+  }
+
+  async updateComponentAttribute(
+    changeSetId: string,
+    componentId: string,
+    attributePath: string,
+    value: any
+  ): Promise<any> {
+    try {
+      const response = await this.fetch(
+        `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${changeSetId}/components/${componentId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            attributes: {
+              [attributePath]: value
+            }
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText} - ${errorText}`
+        );
+      }
+
+      return await response.json();
+    } catch (e) {
+      throw new Error(`Failed to update component attribute '${attributePath}': ${e}`);
+    }
+  }
+
+  async applyChangeSet(changeSetId: string, timeoutSeconds = 120, retryInterval = 5): Promise<any> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeoutSeconds * 1000) {
+      try {
+        const response = await this.fetch(
+          `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${changeSetId}/force_apply`,
+          {
+            method: "POST",
+            body: "",
+          }
+        );
+
+        if (!response.ok) {
+          if (response.status === 428) {
+            const elapsed = Date.now() - startTime;
+            const remaining = timeoutSeconds * 1000 - elapsed;
+            console.log(
+              `⏳ Dependent values still calculating. Retrying in ${retryInterval}s... (${
+                (remaining / 1000).toFixed(1)
+              }s remaining)`
+            );
+
+            if (remaining > retryInterval * 1000) {
+              await new Promise((resolve) =>
+                setTimeout(resolve, retryInterval * 1000)
+              );
+              continue;
+            } else {
+              break;
+            }
+          } else {
+            const errorText = await response.text();
+            throw new Error(
+              `HTTP ${response.status}: ${response.statusText} - ${errorText}`
+            );
+          }
+        }
+
+        console.log("✅ Change set applied successfully");
+        return await response.json();
+      } catch (e) {
+        if (e instanceof Error && e.message.includes("428")) {
+          continue;
+        }
+        throw e;
+      }
+    }
+
+    throw new Error(
+      `❌ Change set apply timeout: Failed to apply after ${timeoutSeconds}s - dependent values still calculating`
+    );
+  }
+
+  async deleteChangeSet(changeSetId: string): Promise<any> {
+    const response = await this.fetch(
+      `${this.apiUrl}/v1/w/${this.workspaceId}/change-sets/${changeSetId}`,
+      { method: "DELETE" }
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+}
+
 export type ImageAction = 'build' | 'publish' | 'push' | 'deploy';
 export type Component = 'api' | 'web' | 'e2e';
 export type Environment = 'sandbox' | 'dev' | 'preprod' | 'prod' | 'pr';
@@ -149,13 +329,77 @@ class ImageLifecycleManager {
 
   async deployImage(component: Component): Promise<string> {
     const manifest = this.getImageManifest(component);
+    let changeSetId: string | null = null;
     
-    console.log(`⚠️  Deploy action is not yet implemented for ${component.toUpperCase()}`);
-    console.log(`   This would deploy image: ${manifest.remoteImage}`);
+    console.log(`🚀 Starting deployment for ${component.toUpperCase()}`);
+    console.log(`   Image: ${manifest.remoteImage}`);
     console.log(`   Environment: ${this.config.environment}`);
     console.log(`   Tag: ${this.config.tag}`);
     
-    throw new Error(`Deploy functionality not yet implemented. Please implement deployment logic for ${component} component.`);
+    try {
+      // Initialize System Initiative client
+      const siClient = new SystemInitiativeClient();
+      
+      // Step 1: Create a new change set
+      const changeSetName = `Deploy ${component.toUpperCase()} - ${this.config.tag} - ${new Date().toISOString()}`;
+      console.log(`📝 Creating change set: ${changeSetName}`);
+      
+      const changeSetData = await siClient.createChangeSet(changeSetName);
+      changeSetId = changeSetData.changeSet.id;
+      console.log(`✅ Created ChangeSet ID: ${changeSetId}`);
+      
+      if (!changeSetId) {
+        throw new Error("Failed to create change set - no ID returned");
+      }
+      
+      // Step 2: Find the component sandbox-tonys-chips-image-tag
+      const componentName = `${this.config.environment}-tonys-chips-image-tag`;
+      console.log(`🔍 Looking for component: ${componentName}`);
+      
+      const foundComponent = await siClient.findComponentByName(changeSetId, componentName);
+      if (!foundComponent) {
+        throw new Error(`Component '${componentName}' not found. Ensure the image tag component exists in the workspace.`);
+      }
+      
+      console.log(`✅ Found component: ${foundComponent.name} (${foundComponent.id})`);
+      
+      // Step 3: Update the domain/Template attribute value to the tag
+      console.log(`🔧 Updating /domain/Template attribute to: ${this.config.tag}`);
+      
+      await siClient.updateComponentAttribute(
+        changeSetId,
+        foundComponent.id,
+        "/domain/Template",
+        this.config.tag
+      );
+      
+      console.log(`✅ Successfully updated Template attribute`);
+      
+      // Step 4: Apply the change set
+      console.log(`📤 Applying change set ${changeSetId}...`);
+      
+      await siClient.applyChangeSet(changeSetId);
+      
+      console.log(`✅ Change set applied successfully`);
+      console.log(`🎉 Deployment complete for ${component.toUpperCase()}`);
+      
+      return manifest.remoteImage;
+      
+    } catch (error) {
+      console.error(`❌ Deployment failed for ${component.toUpperCase()}: ${error}`);
+      throw error;
+    } finally {
+      // Clean up the change set
+      if (changeSetId) {
+        try {
+          console.log(`🧹 Cleaning up change set ${changeSetId}...`);
+          await new SystemInitiativeClient().deleteChangeSet(changeSetId);
+          console.log(`✅ Change set cleaned up`);
+        } catch (cleanupError) {
+          console.warn(`⚠️  Failed to cleanup change set: ${cleanupError}`);
+        }
+      }
+    }
   }
 
   async executeAction(action: ImageAction, components: Component[]): Promise<void> {
