@@ -52,7 +52,7 @@ jobs:
       - name: Run policy check
         env:
           SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
-          SI_WORKSPACE_ID: ${{ secrets.SI_WORKSPACE_ID }}
+          SI_WORKSPACE_ID: ${{ vars.SI_WORKSPACE_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -65,11 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: policy-report-${{ hashFiles(matrix.policy) }}
-          path: |
-            policy/*-report.md
-            policy/*-extracted.json
-            policy/*-source-data.json
-            policy/*-evaluation.json
+          path: policy/*-report.md
           retention-days: 30
           if-no-files-found: warn
 
