@@ -2,15 +2,6 @@ name: Policy Check
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to check (uses workspace from secrets)'
-        required: false
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - staging
 
 permissions:
   contents: read
@@ -40,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: discover-policies
     if: needs.discover-policies.outputs.matrix != '[]'
+    environment: sandbox
     strategy:
       matrix:
         policy: ${{ fromJson(needs.discover-policies.outputs.matrix) }}
