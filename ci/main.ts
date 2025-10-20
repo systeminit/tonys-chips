@@ -8,9 +8,7 @@
 import { calver } from './commands/calver.js';
 import { checkPostgres } from './commands/check-postgres.js';
 import { checkInfraFlags } from './commands/check-infraflags.js';
-import { build } from './commands/build.js';
-import { publish } from './commands/publish.js';
-import { pushImage } from './commands/push-image.js';
+import { manageImageLifecycle } from './commands/manage-image-lifecycle.js';
 import { manageStackLifecycle } from './commands/manage-stack-lifecycle.js';
 import { postToPr } from './commands/post-to-pr.js';
 import { buildLocal } from './commands/build-local.js';
@@ -43,24 +41,6 @@ const commands: Command[] = [
     execute: checkInfraFlags,
   },
   {
-    name: "build",
-    description: "Build Docker images for deployment",
-    usage: "build <environment> <component> <tag>  (component: api|web|e2e)",
-    execute: build,
-  },
-  {
-    name: "publish",
-    description: "Publish Docker images to ECR",
-    usage: "publish <environment> <component> <tag>  (component: api|web|e2e)",
-    execute: publish,
-  },
-  {
-    name: "push-image",
-    description: "Build and push Docker image to ECR (combined build + publish)",
-    usage: "push-image <environment> <component> <tag>  (component: api|web|e2e)",
-    execute: pushImage,
-  },
-  {
     name: "manage-stack-lifecycle",
     description: "Manage System Initiative environment stack lifecycle (up/down)",
     usage: "manage-stack-lifecycle <up|down> <version>",
@@ -82,6 +62,12 @@ const commands: Command[] = [
     description: "Run E2E tests in Docker container",
     usage: "test-e2e",
     execute: testE2e,
+  },
+  {
+    name: "manage-image-lifecycle",
+    description: "Unified image lifecycle management (build, publish, push)",
+    usage: "manage-image-lifecycle <action> <environment> <component> <tag>  (action: build|publish|push|deploy, component: api|web|e2e)",
+    execute: manageImageLifecycle,
   },
 ];
 
