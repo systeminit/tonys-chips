@@ -8,7 +8,7 @@ import { SystemInitiativeClient } from '../lib/system-initiative-client.js';
 
 export type ImageAction = 'build' | 'publish' | 'push' | 'deploy';
 export type Component = 'api' | 'web' | 'e2e';
-export type Environment = 'sandbox' | 'dev' | 'preprod' | 'prod' | 'pr';
+export type Environment = 'sandbox' | 'dev' | 'preprod' | 'prod' | 'pr' | 'shared';
 
 interface BaseConfig {
   environment: Environment;
@@ -36,17 +36,18 @@ class ImageLifecycleManager {
 
   constructor(environment: Environment, tag: string) {
     const region = process.env.AWS_REGION || "us-west-2";
-    const accountId = process.env.AWS_ACCOUNT_ID;
-    
-    if (!accountId) {
-      throw new Error("AWS_ACCOUNT_ID environment variable not found. Make sure AWS credentials are configured.");
-    }
-
-    const ecrRegistry = `${accountId}.dkr.ecr.${region}.amazonaws.com`;
+    const accountId = process.env.AWS_ACCOUNT_ID || "";
+    const ecrRegistry = accountId ? `${accountId}.dkr.ecr.${region}.amazonaws.com` : "";
     const viteApiUrl = process.env.VITE_API_URL || "http://localhost:3000";
 
     this.config = { environment, tag, region, accountId, ecrRegistry };
     this.buildConfig = { ...this.config, viteApiUrl };
+  }
+
+  private validateAwsCredentials(): void {
+    if (!this.config.accountId) {
+      throw new Error("AWS_ACCOUNT_ID environment variable not found. Make sure AWS credentials are configured.");
+    }
   }
 
   private runCommand(command: string, description: string): void {
@@ -113,6 +114,7 @@ class ImageLifecycleManager {
   }
 
   async buildImage(component: Component): Promise<string> {
+    this.validateAwsCredentials();
     const manifest = this.getImageManifest(component);
     
     let buildCommand = `docker build -f ${manifest.dockerfile}`;
@@ -132,6 +134,7 @@ class ImageLifecycleManager {
   }
 
   async publishImage(component: Component): Promise<string> {
+    this.validateAwsCredentials();
     const manifest = this.getImageManifest(component);
     
     this.runCommand(
@@ -149,11 +152,9 @@ class ImageLifecycleManager {
   }
 
   async deployImage(component: Component): Promise<string> {
-    const manifest = this.getImageManifest(component);
     let changeSetId: string | null = null;
     
     console.log(`🚀 Starting deployment for ${component.toUpperCase()}`);
-    console.log(`   Image: ${manifest.remoteImage}`);
     console.log(`   Environment: ${this.config.environment}`);
     console.log(`   Tag: ${this.config.tag}`);
     
@@ -204,7 +205,7 @@ class ImageLifecycleManager {
       console.log(`✅ Change set applied successfully`);
       console.log(`🎉 Deployment complete for ${component.toUpperCase()}`);
       
-      return manifest.remoteImage;
+      return `Deployed ${component} with tag ${this.config.tag}`;
       
     } catch (error) {
       console.error(`❌ Deployment failed for ${component.toUpperCase()}: ${error}`);
@@ -276,28 +277,47 @@ class ImageLifecycleManager {
 
 // Main unified interface
 export async function manageImageLifecycle(args: string[]): Promise<void> {
-  if (args.length < 4) {
-    throw new Error("Usage: manage-image-lifecycle <action> <environment> <component> <tag>\nExample: manage-image-lifecycle build sandbox api 20231201120000-abc1234");
-  }
-
   const action = args[0] as ImageAction;
+  const minArgs = action === 'deploy' ? 3 : 4;
+  
+  if (args.length < minArgs) {
+    if (action === 'deploy') {
+      throw new Error("Usage: manage-image-lifecycle deploy <environment> <tag>\nExample: manage-image-lifecycle deploy sandbox 20231201120000-abc1234");
+    } else {
+      throw new Error("Usage: manage-image-lifecycle <action> <environment> <component> <tag>\nExample: manage-image-lifecycle build sandbox api 20231201120000-abc1234");
+    }
+  }
+  
   const environment = args[1] as Environment;
-  const componentArg = args[2];
-  const tag = args[3];
+  const componentArg = action === 'deploy' ? 'all' : args[2];
+  const tag = action === 'deploy' ? args[2] : args[3];
   
   if (!['build', 'publish', 'push', 'deploy'].includes(action)) {
     throw new Error(`Invalid action: ${action}. Must be 'build', 'publish', 'push', or 'deploy'`);
   }
 
-  if (!['sandbox', 'dev', 'preprod', 'prod', 'pr'].includes(environment)) {
-    throw new Error(`Invalid environment: ${environment}. Must be 'sandbox', 'dev', 'preprod', 'prod', or 'pr'`);
+  if (!['sandbox', 'dev', 'preprod', 'prod', 'pr', 'shared'].includes(environment)) {
+    throw new Error(`Invalid environment: ${environment}. Must be 'sandbox', 'dev', 'preprod', 'prod', 'pr', or 'shared'`);
   }
 
-  if (!['api', 'web', 'e2e'].includes(componentArg)) {
-    throw new Error(`Invalid component: ${componentArg}. Must be 'api', 'web', or 'e2e'`);
+  if (!['api', 'web', 'e2e', 'all'].includes(componentArg)) {
+    throw new Error(`Invalid component: ${componentArg}. Must be 'api', 'web', 'e2e', or 'all'`);
   }
 
-  const component = componentArg as Component;
   const manager = new ImageLifecycleManager(environment, tag);
-  await manager.executeAction(action, [component]);
+  
+  if (action === 'deploy') {
+    // Deploy always handles all components - no need to specify
+    const allComponents: Component[] = ['api', 'web', 'e2e'];
+    await manager.executeAction(action, allComponents);
+  } else {
+    // For build/publish, handle individual or all components
+    if (componentArg === 'all') {
+      const allComponents: Component[] = ['api', 'web', 'e2e'];
+      await manager.executeAction(action, allComponents);
+    } else {
+      const component = componentArg as Component;
+      await manager.executeAction(action, [component]);
+    }
+  }
 }
