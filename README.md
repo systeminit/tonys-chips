@@ -35,17 +35,20 @@ This project is organized as a monorepo with the following structure:
 ### Quick Start with Docker (Recommended)
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd sample-app
    ```
 
 2. **Build the Docker images**
+
    ```bash
    npm run build:local
    ```
 
 3. **Start the application**
+
    ```bash
    npm run docker:up
    ```
@@ -146,6 +149,7 @@ The web UI will run on http://localhost:3001
 ### Development Commands
 
 #### Root Commands
+
 ```bash
 npm install                    # Install all workspace dependencies
 
@@ -162,6 +166,7 @@ npm run docker:test:e2e        # Run E2E tests in Docker against local services
 ```
 
 #### API Commands (packages/api/)
+
 ```bash
 npm run dev                    # Start dev server with hot reload
 npm run build                  # Build TypeScript to JavaScript
@@ -179,6 +184,7 @@ npx prisma generate            # Regenerate Prisma Client
 ```
 
 #### Web Commands (packages/web/)
+
 ```bash
 npm run dev                    # Start Express dev server with hot reload
 npm run build                  # Build TypeScript to JavaScript
@@ -203,6 +209,7 @@ npm run test:coverage
 **Comprehensive end-to-end tests** using Playwright for both API and browser testing.
 
 **Quick start:**
+
 ```bash
 # Run all E2E tests locally (requires services running)
 npm run test:e2e
@@ -219,6 +226,7 @@ npm run test:e2e:report
 ```
 
 **Docker E2E Testing:**
+
 ```bash
 # Build all images including E2E (local development)
 npm run build:local
@@ -244,6 +252,7 @@ docker run --rm \
 **What's tested:**
 
 **API Tests** (40+ tests):
+
 - ✅ Health checks (2 tests)
 - ✅ Product endpoints (5 tests)
 - ✅ Cart operations (8 tests)
@@ -253,6 +262,7 @@ docker run --rm \
 - ✅ Performance (2 tests)
 
 **Web Tests** (30+ tests):
+
 - ✅ Page loading (5 tests)
 - ✅ Session management (2 tests)
 - ✅ Navigation (2 tests)
@@ -266,10 +276,12 @@ docker run --rm \
 - ✅ Full user journey (1 test)
 
 **Environment configuration:**
+
 - **Default**: Uses `localhost:3000` (API) and `localhost:8080` (web)
 - **Custom**: Set `API_URL` and `WEB_URL` environment variables
 
 **Examples:**
+
 ```bash
 # Test against staging (local execution)
 API_URL=https://api-staging.example.com \
@@ -320,6 +332,7 @@ npx prisma studio
 ### Troubleshooting
 
 **Port already in use:**
+
 ```bash
 # Check what's running on a port
 lsof -i :3000    # API port
@@ -331,17 +344,20 @@ kill -9 <PID>
 ```
 
 **Database connection issues:**
+
 - Ensure PostgreSQL is running (if not using Docker)
 - Verify DATABASE_URL in .env file
 - Check Docker Compose logs: `npm run docker:logs`
 
 **Prisma Client not found:**
+
 ```bash
 cd packages/api
 npx prisma generate
 ```
 
 **Module not found errors:**
+
 ```bash
 # Clean install all dependencies
 rm -rf node_modules package-lock.json
@@ -363,6 +379,7 @@ Container images are tagged with `YYYYMMDDHHMMSS-gitsha` format for versioning.
 ## CI/CD Pipeline
 
 GitHub Actions automatically:
+
 - Runs API tests against PostgreSQL
 - Lints the web application
 - Builds both API and web services

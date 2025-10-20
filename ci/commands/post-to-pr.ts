@@ -395,36 +395,35 @@ async function handleEnvironmentRefresh(args: string[]): Promise<void> {
   }
 
   const [prNumberStr, branchName] = args;
-  
+
   // Validate PR number
   if (!/^\d+$/.test(prNumberStr)) {
     console.error(`❌ Invalid PR number: ${prNumberStr}. Must be a positive integer.`);
     process.exit(1);
   }
-  
+
   const prNumber = parseInt(prNumberStr, 10);
-  
-  console.log("📝 Posting environment refresh info to GitHub PR");
+
+  console.log("📝 Updating environment comment with refresh status on GitHub PR");
   console.log(`📋 PR Number: ${prNumber}`);
   console.log(`📋 Branch: ${branchName}`);
   console.log("");
 
   const client = new GitHubClient();
 
-  // Create unique identifier for this comment type
-  // Use a simple static identifier for all environment refreshes on this PR
-  const commentIdentifier = `environment-refresh`;
+  // Use the same identifier as new-environment so we update the deployment comment
+  const commentIdentifier = `new-environment`;
 
-  // Check for existing comment for this refresh
+  // Check for existing deployment comment
   const existingCommentId = await client.findExistingComment(prNumber, commentIdentifier);
 
   if (existingCommentId) {
-    console.log(`Found existing environment refresh comment with ID: ${existingCommentId}`);
+    console.log(`Found existing deployment comment with ID: ${existingCommentId}`);
   } else {
-    console.log(`No existing environment refresh comment found`);
+    console.log(`No existing deployment comment found, will create new comment`);
   }
 
-  // Create comment body
+  // Create comment body showing refresh status
   const commentBody = `<!-- ${commentIdentifier} -->
 🔄 **Environment Refreshing**
 
@@ -444,14 +443,14 @@ The environment for branch \`${branchName}\` is being refreshed with the latest 
 
   // Post or update comment
   if (existingCommentId) {
-    console.log(`Updating existing refresh comment ID: ${existingCommentId}`);
+    console.log(`Updating existing deployment comment with refresh status, ID: ${existingCommentId}`);
     await client.updateComment(existingCommentId, commentBody);
   } else {
-    console.log(`Posting new environment refresh comment to PR #${prNumber}`);
+    console.log(`Posting new refresh comment to PR #${prNumber}`);
     await client.postComment(prNumber, commentBody);
   }
 
-  console.log("✅ Successfully posted environment refresh info to PR");
+  console.log("✅ Successfully updated environment comment with refresh status");
 }
 
 export async function postToPr(args: string[]): Promise<void> {

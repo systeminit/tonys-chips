@@ -16,6 +16,7 @@
   "description": "API for Tony's World of Chips",
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.907.0",
+    "@aws-sdk/rds-signer": "^3.913.0",
     "@prisma/client": "^6.17.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
