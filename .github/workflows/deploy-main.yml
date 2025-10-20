@@ -2,7 +2,7 @@ name: Deploy Main Branch
 
 on:
   push:
-    branches: [main, feat/ecs-task-update]
+    branches: [main, feat/implement-deploy-on-main]
     paths:
       - "packages/**"
       - "docker/**"
