@@ -289,8 +289,8 @@ export async function manageImageLifecycle(args: string[]): Promise<void> {
     throw new Error(`Invalid action: ${action}. Must be 'build', 'publish', 'push', or 'deploy'`);
   }
 
-  if (!['sandbox', 'dev', 'preprod', 'prod', 'pr'].includes(environment)) {
-    throw new Error(`Invalid environment: ${environment}. Must be 'sandbox', 'dev', 'preprod', 'prod', or 'pr'`);
+  if (!['sandbox', 'dev', 'preprod', 'prod', 'pr', 'shared'].includes(environment)) {
+    throw new Error(`Invalid environment: ${environment}. Must be 'sandbox', 'dev', 'preprod', 'prod', 'pr', or 'shared'`);
   }
 
   if (!['api', 'web', 'e2e'].includes(componentArg)) {
