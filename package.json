@@ -14,6 +14,7 @@
     "ci:calver": "npx tsx ci/main.ts calver",
     "ci:check-postgres": "npx tsx ci/main.ts check-postgres",
     "ci:check-infraflags": "npx tsx ci/main.ts check-infraflags",
+    "ci:check-policy": "npx tsx ci/main.ts check-policy",
     "ci:manage-image-lifecycle": "npx tsx ci/main.ts manage-image-lifecycle",
     "ci:manage-stack-lifecycle": "npx tsx ci/main.ts manage-stack-lifecycle",
     "ci:post-to-pr": "npx tsx ci/main.ts post-to-pr",
@@ -27,6 +28,7 @@
   "license": "Apache-2.0",
   "description": "Tony's World of Chips - E-commerce storefront",
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.20",
     "js-yaml": "^4.1.0",
     "system-initiative-api-client": "^1.0.0"
   },
