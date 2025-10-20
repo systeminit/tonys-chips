@@ -8,7 +8,7 @@ import { SystemInitiativeClient } from '../lib/system-initiative-client.js';
 
 export type ImageAction = 'build' | 'publish' | 'push' | 'deploy';
 export type Component = 'api' | 'web' | 'e2e';
-export type Environment = 'sandbox' | 'dev' | 'preprod' | 'prod' | 'pr';
+export type Environment = 'sandbox' | 'dev' | 'preprod' | 'prod' | 'pr' | 'shared';
 
 interface BaseConfig {
   environment: Environment;

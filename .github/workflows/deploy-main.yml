@@ -72,7 +72,6 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
