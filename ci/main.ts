@@ -8,6 +8,7 @@
 import { calver } from './commands/calver.js';
 import { checkPostgres } from './commands/check-postgres.js';
 import { checkInfraFlags } from './commands/check-infraflags.js';
+import { checkPolicy } from './commands/check-policy.js';
 import { manageImageLifecycle } from './commands/manage-image-lifecycle.js';
 import { manageStackLifecycle } from './commands/manage-stack-lifecycle.js';
 import { postToPr } from './commands/post-to-pr.js';
@@ -39,6 +40,12 @@ const commands: Command[] = [
     description: "Check infrastructure flags deployment status",
     usage: "check-infraflags <environment>  (environment: pr|dev|preprod|prod)",
     execute: checkInfraFlags,
+  },
+  {
+    name: "check-policy",
+    description: "Check policy compliance against System Initiative infrastructure",
+    usage: "check-policy <policy-file> [--output path]",
+    execute: checkPolicy,
   },
   {
     name: "manage-stack-lifecycle",

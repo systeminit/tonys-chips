@@ -1,0 +1,93 @@
+name: Policy Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to check (uses workspace from secrets)'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  discover-policies:
+    name: Discover Policy Files
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find policy files
+        id: set-matrix
+        run: |
+          # Find all .md files in policy/ directory
+          policies=$(find policy -name "*.md" -type f | jq -R -s -c 'split("\n")[:-1]')
+          echo "matrix=$policies" >> $GITHUB_OUTPUT
+          echo "Found policies:"
+          echo "$policies" | jq -r '.[]'
+
+  check-policies:
+    name: Check ${{ matrix.policy }}
+    runs-on: ubuntu-latest
+    needs: discover-policies
+    if: needs.discover-policies.outputs.matrix != '[]'
+    strategy:
+      matrix:
+        policy: ${{ fromJson(needs.discover-policies.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run policy check
+        env:
+          SI_API_TOKEN: ${{ secrets.SI_API_TOKEN }}
+          SI_WORKSPACE_ID: ${{ secrets.SI_WORKSPACE_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          npx tsx ci/main.ts check-policy "${{ matrix.policy }}"
+        continue-on-error: true
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: policy-report-${{ hashFiles(matrix.policy) }}
+          path: |
+            policy/*-report.md
+            policy/*-extracted.json
+            policy/*-source-data.json
+            policy/*-evaluation.json
+          retention-days: 30
+          if-no-files-found: warn
+
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: check-policies
+    if: always()
+    steps:
+      - name: Policy check complete
+        run: |
+          echo "✅ Policy check workflow completed"
+          echo "Check individual job results and GitHub issues for details"

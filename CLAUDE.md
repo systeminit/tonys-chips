@@ -116,6 +116,88 @@ docker run --rm \
 - `WEB_URL` - Base URL for the web application (default: http://localhost:8080)
 - `CI` - Set to "true" to enable CI mode (enabled by default in container)
 
+### Policy Checking
+
+The project includes an integrated policy compliance checker that evaluates System Initiative infrastructure against defined policies using Claude AI.
+
+**Policy Structure**: Policy files are markdown documents in the `policy/` directory with a specific format:
+
+```markdown
+# Policy Title
+
+## Policy
+Policy description and requirements...
+
+### Exceptions
+Any exceptions to the policy...
+
+## Source Data
+
+### System Initiative
+```yaml
+query-name: "schema:AWS*"
+another-query: "schema:AWS::EC2::*"
+```
+
+## Output Tags
+```yaml
+tags:
+  - tag1
+  - tag2
+```
+```
+
+**Running Policy Checks Locally**:
+
+```bash
+# Check a single policy
+npx tsx ci/main.ts check-policy policy/my-policy.md
+
+# Check with custom output path
+npx tsx ci/main.ts check-policy policy/my-policy.md --output ./reports/my-policy-report.md
+
+# Or use npm script
+npm run ci:check-policy policy/my-policy.md
+```
+
+**Environment Variables**:
+- `SI_API_TOKEN` - System Initiative API token (required)
+- `SI_WORKSPACE_ID` - System Initiative workspace ID (required)
+- `ANTHROPIC_API_KEY` - Anthropic API key for Claude agent (required)
+- `GITHUB_TOKEN` - GitHub token for posting issues (optional, for CI)
+- `GITHUB_REPOSITORY` - GitHub repository (optional, for CI)
+
+**GitHub Actions Workflow**:
+
+The repository includes a `policy-check.yml` workflow that can be manually triggered to check all policies in the `policy/` directory. The workflow:
+
+1. Discovers all `.md` files in `policy/`
+2. Runs each policy check in a matrix build
+3. Posts results to GitHub issues (one issue per policy)
+4. Closes previous issues for the same policy when creating new ones
+5. Uploads reports as artifacts
+
+To trigger manually:
+1. Go to Actions tab in GitHub
+2. Select "Policy Check" workflow
+3. Click "Run workflow"
+
+**How It Works**:
+
+The policy checker runs a 4-stage pipeline:
+
+1. **Extract Policy** - Claude agent parses the policy markdown and extracts structured data
+2. **Collect Source Data** - Queries System Initiative API for components matching the policy's source data queries
+3. **Evaluate Policy** - Claude agent evaluates each component against policy requirements and identifies failures
+4. **Generate Report** - Creates a markdown report with deep links to System Initiative components
+
+Reports include:
+- Pass/Fail status
+- Summary of evaluation
+- Table of failing components with reasons
+- Source data tables with policy-relevant attributes
+- Deep links to components in System Initiative
+
 ## Architecture
 
 ### Monorepo and TypeScript Setup
