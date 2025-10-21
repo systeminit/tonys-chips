@@ -10,7 +10,8 @@ This is "Tony's World of Chips", an e-commerce storefront application built as a
 
 The project uses npm workspaces with two packages:
 - `packages/api/` - Express.js REST API with Prisma ORM
-- `packages/web/` - React SPA with Vite
+- `packages/web/` - Express.js server-side rendered frontend with EJS templates
+- `e2e/` - Playwright end-to-end tests (in root directory)
 
 The root `tsconfig.json` is shared by both packages. Each package extends it with package-specific settings.
 
@@ -23,16 +24,20 @@ The root `tsconfig.json` is shared by both packages. Each package extends it wit
 npm run dev          # Start development server on port 3000
 npm run build        # Build TypeScript
 npm start            # Run production build
-
-# Web (from packages/web/)
-npm run dev          # Start Vite dev server on port 5173
-npm run build        # Build for production
-npm run lint         # Run ESLint
-
-# API Tests (from packages/api/)
 npm test             # Run all tests with Jest
 npm run test:watch   # Watch mode
 npm run test:coverage # With coverage report
+
+# Web (from packages/web/)
+npm run dev          # Start development server on port 3001
+npm run build        # Build TypeScript
+npm start            # Run production build
+npm run lint         # Run ESLint
+
+# E2E Tests (from root directory)
+npm run test:e2e     # Run Playwright tests
+npm run test:e2e:ui  # Run tests with UI
+npm run test:e2e:report # Show test report
 ```
 
 ### Database Commands (from packages/api/)
@@ -207,12 +212,16 @@ Reports include:
 
 ### API Architecture (packages/api/)
 
-**Entry Point**: `src/index.ts` sets up Express app with middleware (cors, json parser, error handler) and mounts routes.
+**Entry Point**: `src/index.ts` sets up Express app with middleware (cors, json parser, error handler) and mounts routes. Includes health check endpoints at `/health` and `/health/db` for monitoring.
 
 **Database**: Prisma ORM with PostgreSQL (schema: `prisma/schema.prisma`)
 - Models: Product, CartItem, Order
-- Database client: `src/config/database.ts` exports singleton Prisma instance
+- Database client: `src/config/database.ts` exports singleton Prisma instance with IAM token refresh logic
 - Migrations: Auto-applied on container startup in Docker Compose
+- Authentication: Supports both password and AWS IAM authentication
+  - IAM tokens auto-refresh every 14 minutes (before 15-minute expiry)
+  - `src/config/secrets.ts` handles IAM token generation via AWS RDS Signer
+  - Controlled by `DB_USE_IAM_AUTH` environment variable
 
 **Route Organization**:
 - `src/routes/products.ts` - Product catalog endpoints
@@ -222,30 +231,49 @@ Reports include:
 
 **Testing**: Jest with supertest for API integration tests in `src/__tests__/`
 
+**AWS Integration**:
+- RDS IAM authentication for database connections in production
+- Secrets Manager integration for password-based authentication (fallback)
+- Token refresh mechanism ensures long-running connections remain valid
+
 ### Web Architecture (packages/web/)
 
-**Build Tool**: Vite with React 19 and TypeScript
+**Server Framework**: Express.js with server-side rendering using EJS templates
 
-**Routing**: React Router v6 setup in `src/App.tsx`
+**Entry Point**: `src/index.ts` sets up Express app with session management, view engine, and routes
+
+**Routing**: Express router-based routing
 - `/` - Home page (product grid)
 - `/products/:id` - Product detail page
 - `/cart` - Shopping cart page
-- `/checkout` - Checkout confirmation page
+- `/orders/checkout` - Checkout page
+- `/health` - Health check endpoint
 
-**State Management**: React Context API in `src/context/CartContext.tsx`
-- Manages cart state globally
-- Generates and persists session ID in localStorage
-- Provides cart actions: add, update, remove, checkout
+**Session Management**: Express-session middleware with Valkey store
+- Valkey-backed session storage for multi-instance support (Redis-compatible protocol)
+- Sessions persist across server restarts and load-balanced instances
+- Generates and persists unique session ID for cart tracking
+- Session ID automatically injected into all views via `res.locals`
+- Session TTL: 30 days
 
 **Service Layer**: `src/services/` contains API client wrappers
-- `api.ts` - Axios instance configured with base URL from env
-- `productService.ts` - Product API calls
-- `cartService.ts` - Cart API calls
-- `orderService.ts` - Order API calls
+- Axios-based HTTP clients for communicating with the API backend
+- Handles all API communication from the web server
 
-**Components**: Organized in `src/components/` with reusable UI components and `src/pages/` for page-level components
+**View Templates**: EJS templates in `views/` directory
+- `views/home.ejs` - Product listing page
+- `views/product-detail.ejs` - Individual product page
+- `views/cart.ejs` - Shopping cart view
+- `views/checkout.ejs` - Checkout confirmation
+- `views/partials/` - Reusable template components (header, footer)
 
-**Environment Config**: Uses Vite's `import.meta.env.VITE_API_URL` for API base URL
+**Static Assets**: Served from `public/` directory, includes Tailwind CSS styling
+
+**Environment Config**:
+- `API_URL` - Backend API URL (passed to views for client-side API calls)
+- `SESSION_SECRET` - Session encryption key
+- `REDIS_URL` - Valkey connection URL (default: redis://localhost:6379, uses Redis-compatible protocol, use AWS ElastiCache Valkey endpoint for production)
+- `PORT` - Server port (default: 3001)
 
 ### Docker Architecture
 
@@ -257,26 +285,82 @@ Reports include:
 - Production command: `npm start` (runs compiled JS)
 
 **Web Container** (`docker/web.Dockerfile`):
-- Multi-stage build: Stage 1 builds React app with Node, Stage 2 serves with nginx
-- Accepts `VITE_API_URL` as build argument (baked into build)
-- Custom nginx config (`docker/nginx.conf`) handles SPA routing with `try_files`
-- Production: Serves static files on port 80
+- Single-stage build with Node 20
+- Copies root `tsconfig.json` to resolve extends in package tsconfig
+- Structure: Mimics monorepo with `/app/packages/web/` inside container
+- Installs dependencies, copies source and views, builds TypeScript
+- Production: Runs Express server on port 3001
+- Serves EJS-rendered HTML pages with session management
 
 **Docker Compose** (`docker-compose.yml`):
-- Three services: postgres, api, web
-- PostgreSQL 16 with health checks
+- Four services: postgres, valkey, api, web
+- PostgreSQL 16-alpine with health checks and persistent volume
+- Valkey 8-alpine with health checks (ephemeral, no persistence, Redis-compatible)
 - API waits for healthy postgres, runs migrations + seed on startup
-- Web depends on API
+- Web depends on API and healthy Valkey
 - Bridge network for inter-container communication
-- Ports: postgres:5432, api:3000, web:8080
+- Port mappings:
+  - postgres: 5432 (host) → 5432 (container)
+  - valkey: 6379 (host) → 6379 (container)
+  - api: 3000 (host) → 3000 (container)
+  - web: 8080 (host) → 3001 (container)
+- Environment variables:
+  - API: `DATABASE_URL`, `PORT`, `NODE_ENV`
+  - Web: `API_URL`, `PORT`, `NODE_ENV`, `SESSION_SECRET`, `REDIS_URL`
+- Images use `${IMAGE_TAG:-latest}` for flexible versioning
 
 **E2E Test Container** (`docker/e2e.Dockerfile`):
-- Based on official Playwright image with browsers pre-installed
-- Single-stage build with Node 20
-- Copies only test files and configuration (not full monorepo)
-- Accepts environment variables at runtime: `API_URL`, `WEB_URL`, `CI`
-- Default command runs all Playwright tests
-- Can be customized with different Playwright CLI options
+- Based on official Playwright image (v1.56.0-jammy) with browsers pre-installed
+- Copies root-level test files and configuration:
+  - `e2e/` directory with test specs (api.spec.ts, web.spec.ts)
+  - `playwright.config.ts` - test configuration
+  - Root `tsconfig.json` for TypeScript compilation
+- Environment variables (configurable at runtime):
+  - `API_URL` - API base URL (default: http://localhost:3000)
+  - `WEB_URL` - Web base URL (default: http://localhost:8080)
+  - `CI` - CI mode flag (default: true)
+- Default command: `npx playwright test`
+- Test projects configured separately for API and web tests
+
+### E2E Testing Architecture
+
+**Framework**: Playwright (v1.56.0) with TypeScript
+
+**Test Organization**:
+- `e2e/api.spec.ts` - API endpoint tests (health checks, products, cart, orders)
+- `e2e/web.spec.ts` - Web UI tests (browsing, cart interactions, checkout flow)
+- Tests run in separate Playwright projects with different base URLs
+
+**Configuration** (`playwright.config.ts`):
+- Configurable API and web URLs via environment variables
+- Separate test projects for API vs web tests
+- CI mode with retries and single worker for stability
+- HTML, JSON, and list reporters enabled
+- Screenshots and videos captured on failure
+
+**Running Tests**:
+- Locally: `npm run test:e2e` (requires running services)
+- Docker: `npm run docker:test:e2e` (uses E2E container)
+- Against remote environments: Set `API_URL` and `WEB_URL` environment variables
+
+### CI/CD Orchestration
+
+**Entry Point**: `ci/main.ts` - Centralized TypeScript CLI for all CI/CD operations
+
+**Available Commands**:
+- `calver` - Generate CALVER timestamp tags from git commit
+- `check-postgres` - Verify PostgreSQL service readiness with configurable timeout
+- `check-infraflags` - Check infrastructure flags deployment status across environments
+- `check-policy` - Run compliance policy checks against System Initiative infrastructure
+- `build-local` - Build Docker images with `latest` tag for local development
+- `test-e2e` - Run E2E tests in Docker container
+- `manage-image-lifecycle` - Unified image lifecycle management (build/publish/deploy)
+- `manage-stack-lifecycle` - Manage System Initiative stack operations (up/down)
+- `post-to-pr` - Post various content to GitHub pull requests
+
+**Usage**: All commands are accessible via `npx tsx ci/main.ts <command> [args]` or through npm scripts like `npm run ci:<command>`
+
+**GitHub Actions Integration**: Commands are designed for use in CI/CD pipelines with proper error handling and exit codes
 
 ### Database Schema Considerations
 
@@ -284,18 +368,43 @@ The Prisma schema (`packages/api/prisma/schema.prisma`) currently uses `provider
 
 ## Deployment
 
-**Container Tagging**: Images should be tagged with `YYYYMMDDHHMMSS-gitsha` format for production deployment.
+**Container Tagging**: Images should be tagged with `YYYYMMDDHHMMSS-gitsha` format (CALVER) for production deployment.
 
-**Target**: AWS ECS with RDS PostgreSQL backend (see `spec.md` for network architecture details).
+**Target**: AWS ECS with RDS PostgreSQL backend via RDS Proxy (see `spec.md` and `INFRA.md` for architecture details).
 
 **Environment Variables**:
-- API: `DATABASE_URL` (PostgreSQL connection string), `PORT`, `NODE_ENV`
-- Web: `VITE_API_URL` (set at build time as Docker ARG)
+
+API Container:
+- `DATABASE_URL` - PostgreSQL connection string (optional if using IAM)
+- `DB_USE_IAM_AUTH` - Enable IAM authentication (true/false)
+- `DB_HOST` - RDS Proxy endpoint hostname
+- `DB_PORT` - Database port (default: 5432)
+- `DB_USER` - Database username
+- `DB_SECRET_ARN` - Secrets Manager ARN (for password auth)
+- `AWS_REGION` - AWS region for services
+- `PORT` - Server port (default: 3000)
+- `NODE_ENV` - Environment mode (production/development)
+
+Web Container:
+- `API_URL` - Backend API URL (e.g., http://api:3000 for Docker, https://api.example.com for production)
+- `PORT` - Server port (default: 3001)
+- `NODE_ENV` - Environment mode
+- `SESSION_SECRET` - Session encryption key (must be set in production)
+- `REDIS_URL` - Valkey connection URL (use AWS ElastiCache Valkey endpoint for production, e.g., redis://valkey-endpoint:6379, uses Redis-compatible protocol)
 
 ## Key Files
 
-- `spec.md` - Full application and deployment specification
-- `implementation-plan.md` - Detailed development checklist (tracks progress)
+- `spec.md` - Original application specification
+- `INFRA.md` - Infrastructure architecture and AWS service details
+- `README.md` - Project overview and getting started guide
 - `docker-compose.yml` - Local full-stack orchestration
-- `packages/api/prisma/schema.prisma` - Database schema
-- `packages/web/src/context/CartContext.tsx` - Global cart state management
+- `packages/api/prisma/schema.prisma` - Database schema (Product, CartItem, Order models)
+- `packages/api/src/config/database.ts` - Prisma client with IAM token refresh logic
+- `packages/api/src/config/secrets.ts` - AWS IAM auth and Secrets Manager integration
+- `packages/web/src/index.ts` - Web server entry point with session management
+- `packages/web/views/` - EJS templates for server-side rendering
+- `e2e/` - Playwright end-to-end tests (api.spec.ts, web.spec.ts)
+- `playwright.config.ts` - E2E test configuration
+- `ci/main.ts` - CI orchestration entry point for build, test, and deployment commands
+- `infraflags.yaml` - Infrastructure feature flags
+- `policy/` - Compliance policy definitions for System Initiative validation

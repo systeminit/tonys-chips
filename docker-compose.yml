@@ -20,6 +20,19 @@ services:
     networks:
       - chips-network
 
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: tonys-chips-valkey
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - chips-network
+
   api:
     image: tonys-chips/api:${IMAGE_TAG:-latest}
     container_name: tonys-chips-api
@@ -44,10 +57,14 @@ services:
       PORT: 3001
       NODE_ENV: production
       SESSION_SECRET: tonys-chips-production-secret-change-me
+      REDIS_URL: redis://valkey:6379
     ports:
       - "8080:3001"
     depends_on:
-      - api
+      api:
+        condition: service_started
+      valkey:
+        condition: service_healthy
     networks:
       - chips-network
 
