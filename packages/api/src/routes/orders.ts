@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrismaClient } from '../config/database';
 
 const router = Router();
 
@@ -14,6 +14,7 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     // Get cart items for this session
+    const prisma = await getPrismaClient();
     const cartItems = await prisma.cartItem.findMany({
       where: { sessionId },
       include: { product: true },

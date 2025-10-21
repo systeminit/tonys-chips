@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrismaClient } from '../config/database';
 
 const router = Router();
 
@@ -19,6 +19,7 @@ router.post('/items', async (req: Request, res: Response) => {
     }
 
     // Check if product exists
+    const prisma = await getPrismaClient();
     const product = await prisma.product.findUnique({
       where: { id: productId },
     });
@@ -68,6 +69,7 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
 
+    const prisma = await getPrismaClient();
     const cartItems = await prisma.cartItem.findMany({
       where: { sessionId },
       include: { product: true },
@@ -97,6 +99,7 @@ router.put('/items/:id', async (req: Request, res: Response) => {
       return;
     }
 
+    const prisma = await getPrismaClient();
     const cartItem = await prisma.cartItem.findUnique({
       where: { id },
     });
@@ -124,6 +127,7 @@ router.delete('/items/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    const prisma = await getPrismaClient();
     const cartItem = await prisma.cartItem.findUnique({
       where: { id },
     });

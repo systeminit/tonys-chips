@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../config/database';
+import { getPrismaClient } from '../config/database';
 
 const router = Router();
 
 // GET /api/products - List all products
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const prisma = await getPrismaClient();
     const products = await prisma.product.findMany({
       orderBy: {
         brand: 'asc',
@@ -21,6 +22,7 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /api/products/:id - Get single product
 router.get('/:id', async (req: Request, res: Response) => {
   try {
+    const prisma = await getPrismaClient();
     const { id } = req.params;
     const product = await prisma.product.findUnique({
       where: { id },
