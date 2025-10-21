@@ -1,5 +1,7 @@
 node_modules
 .env
+.env.local
+.env.*.local
 dist
 *.log
 .DS_Store
@@ -7,4 +9,14 @@ coverage
 .vscode
 .idea
 *.test.ts
+*.spec.ts
 __tests__
+__mocks__
+
+# SQLite dev database
+*.db
+*.db-journal
+
+# Documentation (keep README)
+*.md
+!README.md
