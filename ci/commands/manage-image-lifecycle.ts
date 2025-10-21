@@ -151,10 +151,10 @@ class ImageLifecycleManager {
     return await this.publishImage(component);
   }
 
-  async deployImage(component: Component): Promise<string> {
+  async deployAllComponents(): Promise<string> {
     let changeSetId: string | null = null;
     
-    console.log(`🚀 Starting deployment for ${component.toUpperCase()}`);
+    console.log(`🚀 Starting deployment for all components`);
     console.log(`   Environment: ${this.config.environment}`);
     console.log(`   Tag: ${this.config.tag}`);
     
@@ -163,7 +163,7 @@ class ImageLifecycleManager {
       const siClient = new SystemInitiativeClient();
       
       // Step 1: Create a new change set
-      const changeSetName = `Deploy ${component.toUpperCase()} - ${this.config.tag} - ${new Date().toISOString()}`;
+      const changeSetName = `Deploy All Components - ${this.config.tag} - ${new Date().toISOString()}`;
       console.log(`📝 Creating change set: ${changeSetName}`);
       
       const changeSetData = await siClient.createChangeSet(changeSetName);
@@ -203,12 +203,12 @@ class ImageLifecycleManager {
       await siClient.forceApplyChangeSet(changeSetId);
       
       console.log(`✅ Change set applied successfully`);
-      console.log(`🎉 Deployment complete for ${component.toUpperCase()}`);
+      console.log(`🎉 Deployment complete for all components`);
       
-      return `Deployed ${component} with tag ${this.config.tag}`;
+      return `Deployed all components with tag ${this.config.tag}`;
       
     } catch (error) {
-      console.error(`❌ Deployment failed for ${component.toUpperCase()}: ${error}`);
+      console.error(`❌ Deployment failed: ${error}`);
       throw error;
     } finally {
       // Clean up the change set
@@ -225,6 +225,15 @@ class ImageLifecycleManager {
   }
 
   async executeAction(action: ImageAction, components: Component[]): Promise<void> {
+    // Handle deploy as a special case - it always deploys all components in one operation
+    if (action === 'deploy') {
+      const result = await this.deployAllComponents();
+      console.log("");
+      console.log(`🎉 ${result}`);
+      return;
+    }
+
+    // Handle other actions (build, publish, push) that work on individual components
     console.log(`🚀 Starting image ${action} process`);
     console.log(`📋 Configuration:`);
     console.log(`   Environment: ${this.config.environment}`);
@@ -258,9 +267,6 @@ class ImageLifecycleManager {
           break;
         case 'push':
           imageRef = await this.pushImage(component);
-          break;
-        case 'deploy':
-          imageRef = await this.deployImage(component);
           break;
         default:
           throw new Error(`Unknown action: ${action}`);
@@ -307,9 +313,8 @@ export async function manageImageLifecycle(args: string[]): Promise<void> {
   const manager = new ImageLifecycleManager(environment, tag);
   
   if (action === 'deploy') {
-    // Deploy always handles all components - no need to specify
-    const allComponents: Component[] = ['api', 'web', 'e2e'];
-    await manager.executeAction(action, allComponents);
+    // Deploy always handles all components - no component parameter needed
+    await manager.executeAction(action, []);
   } else {
     // For build/publish, handle individual or all components
     if (componentArg === 'all') {
