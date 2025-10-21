@@ -39,6 +39,10 @@ fi
 echo "Ensuring Prisma Client is up to date..."
 npx prisma generate
 
+# Seed database if empty (idempotent - only runs if no products exist)
+echo "Seeding database if needed..."
+npm run db:seed
+
 # Start the application
 echo "Starting application..."
 exec "$@"
