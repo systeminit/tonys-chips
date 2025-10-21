@@ -101,8 +101,10 @@ export async function buildDatabaseUrl(): Promise<string> {
     // Use IAM authentication (RDS Proxy in production)
     console.log('Using IAM authentication for database connection');
     password = await generateIAMAuthToken();
+    // URL-encode the password (IAM token) as it may contain special characters
+    const encodedPassword = encodeURIComponent(password);
     // SSL is REQUIRED when using IAM authentication
-    return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=public&sslmode=require`;
+    return `postgresql://${user}:${encodedPassword}@${host}:${port}/${database}?schema=public&sslmode=require`;
   } else {
     // Use password from Secrets Manager or environment
     console.log('Using password authentication for database connection');
@@ -111,6 +113,8 @@ export async function buildDatabaseUrl(): Promise<string> {
     } else {
       password = await getDatabasePassword();
     }
-    return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=public`;
+    // URL-encode the password in case it contains special characters
+    const encodedPassword = encodeURIComponent(password);
+    return `postgresql://${user}:${encodedPassword}@${host}:${port}/${database}?schema=public`;
   }
 }
