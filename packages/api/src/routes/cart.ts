@@ -17,7 +17,7 @@ router.post('/items', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'quantity must be at least 1' });
       return;
     }
-
+ 
     // Check if product exists
     const prisma = await getPrismaClient();
     const product = await prisma.product.findUnique({
