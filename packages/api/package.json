@@ -10,7 +10,6 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:create": "prisma migrate dev --create-only",
     "db:push": "prisma db push",
-    "db:seed": "prisma db seed",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -40,8 +39,5 @@
     "ts-jest": "^29.4.4",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   }
 }
