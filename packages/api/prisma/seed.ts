@@ -5,7 +5,16 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Starting seed...');
 
-  // Clear existing data
+  // Check if products already exist
+  const existingProducts = await prisma.product.count();
+  if (existingProducts > 0) {
+    console.log(`Database already has ${existingProducts} products, skipping seed`);
+    return;
+  }
+
+  console.log('Database is empty, seeding with initial data...');
+
+  // Clear existing data (for demo purposes)
   await prisma.cartItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.product.deleteMany();
