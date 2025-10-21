@@ -72,8 +72,8 @@ const commands: Command[] = [
   },
   {
     name: "manage-image-lifecycle",
-    description: "Unified image lifecycle management (build, publish, push)",
-    usage: "manage-image-lifecycle <action> <environment> <component> <tag>  (action: build|publish|push|deploy, component: api|web|e2e)",
+    description: "Unified image lifecycle management (build, publish, push, deploy)",
+    usage: "build|publish|push: <action> <environment> <component> <tag> | deploy: deploy <environment> <tag>",
     execute: manageImageLifecycle,
   },
 ];

@@ -63,7 +63,7 @@ npx tsx ci/main.ts build-local e2e    # Build only E2E test image
 # Image Lifecycle Management Commands (CI/Deployment with specific tags)
 npx tsx ci/main.ts manage-image-lifecycle build <environment> <component> <tag>    # Build only
 npx tsx ci/main.ts manage-image-lifecycle publish <environment> <component> <tag>  # Publish only
-npx tsx ci/main.ts manage-image-lifecycle deploy <environment> <component> <tag>   # Deploy (unimplemented)
+npx tsx ci/main.ts manage-image-lifecycle deploy <environment> <tag>   # Deploy all components
 
 # Docker Compose orchestration (direct docker-compose commands)
 npm run docker:up            # Start services using latest tag (foreground)
