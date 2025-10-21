@@ -106,11 +106,8 @@ cd packages/api
 cp .env.example .env
 # Edit .env and set DATABASE_URL to your PostgreSQL connection string
 
-# Run database migrations
+# Run database migrations (includes seeding sample products)
 npx prisma migrate dev
-
-# Seed the database with sample data
-npx prisma db seed
 
 # Start the development server
 npm run dev
@@ -176,9 +173,8 @@ npm run test:watch             # Run tests in watch mode
 npm run test:coverage          # Run tests with coverage report
 
 # Database commands
-npx prisma migrate dev         # Create and apply new migration
-npx prisma migrate deploy      # Apply migrations (production)
-npx prisma db seed             # Seed database with sample data
+npx prisma migrate dev         # Create and apply new migration (includes seed data)
+npx prisma migrate deploy      # Apply migrations in production (includes seed data)
 npx prisma studio              # Open Prisma Studio GUI
 npx prisma generate            # Regenerate Prisma Client
 ```

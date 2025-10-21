@@ -87,10 +87,8 @@ This document explains how Prisma migrations are handled in the Tony's Chips API
 
 ```bash
 # Apply pending migrations (used in Docker entrypoint)
+# Note: Initial product data is automatically seeded via migration
 npm run migrate
-
-# Seed database with initial data (manual operation)
-npm run db:seed
 ```
 
 ### Development Scripts
@@ -105,8 +103,9 @@ npm run migrate:create
 # Push schema changes directly to database (no migration files)
 npm run db:push
 
-# Seed database with test data
-npm run db:seed
+# Note: Initial product data is included in migrations
+# Run migrations to seed the database
+npm run migrate:dev
 ```
 
 ---
@@ -167,9 +166,10 @@ prisma/
 │   │   └── migration.sql
 │   ├── 20241020140000_add_product_description/
 │   │   └── migration.sql
+│   ├── 20251021000000_seed_products/
+│   │   └── migration.sql
 │   └── migration_lock.toml
-├── schema.prisma
-└── seed.ts
+└── schema.prisma
 ```
 
 **migration_lock.toml:**
@@ -513,7 +513,7 @@ aws ecs run-task \
 **Do:**
 - Use environment variables for sensitive data
 - Reference Secrets Manager in application code
-- Use data migrations (seed scripts) for sensitive defaults
+- Use data migrations for sensitive defaults (e.g., SQL INSERT statements in migration files)
 
 ### Database User Permissions
 
