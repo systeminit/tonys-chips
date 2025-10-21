@@ -57,7 +57,7 @@ async function verifyDatabaseConnection(prisma: PrismaClient) {
     await prisma.$queryRaw`SELECT 1 as test`;
     
     // Test if we can access the database schema by checking for tables
-    const result = await prisma.$queryRaw`
+    const result = await prisma.$queryRaw<Array<{ table_count: bigint }>>`
       SELECT COUNT(*) as table_count 
       FROM information_schema.tables 
       WHERE table_schema = 'public'
