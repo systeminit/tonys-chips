@@ -11,6 +11,7 @@ infraflags:
   - redis
   - poop
   - canoe
+  - frankie
 
   # Uncomment flags below as you add infrastructure dependencies:
   # - redis      # Required when using Redis for caching/sessions
