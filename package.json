@@ -7,9 +7,9 @@
   ],
   "scripts": {
     "build:local": "npx tsx ci/main.ts build-local all",
-    "docker:up": "docker-compose up",
-    "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f",
+    "docker:up": "docker compose up",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
     "docker:test:e2e": "npx tsx ci/main.ts test-e2e",
     "ci:calver": "npx tsx ci/main.ts calver",
     "ci:check-postgres": "npx tsx ci/main.ts check-postgres",
