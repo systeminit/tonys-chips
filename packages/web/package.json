@@ -10,11 +10,17 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@aws-crypto/sha256-js": "^5.2.0",
+    "@aws-sdk/credential-providers": "^3.713.0",
+    "@smithy/protocol-http": "^5.3.3",
+    "@smithy/signature-v4": "^5.3.0",
     "axios": "^1.12.2",
+    "connect-redis": "^9.0.0",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
+    "redis": "^5.8.3",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
