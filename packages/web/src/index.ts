@@ -34,14 +34,29 @@ async function initializeRedisClient(): Promise<RedisClientType> {
     const url = new URL(redisUrl);
     const host = url.hostname;
     const port = parseInt(url.port) || 6379;
-    const username = 'tonys-chips-web'; // Must match ElastiCache User
+    // Username must match an IAM-enabled ElastiCache user
+    // For Serverless: often 'default' or a custom IAM user created in ElastiCache
+    // For regular clusters: custom username from ElastiCache User configuration
+    const username = process.env.REDIS_USERNAME || 'tonys-chips-web';
+
+    // Detect if this is a serverless cache
+    const isServerless = host.includes('.serverless.');
 
     console.log('Initializing Valkey client with IAM authentication...');
     console.log(`Connecting to: ${host}:${port}`);
+    console.log(`Cache Type: ${isServerless ? 'Serverless' : 'Regular Cluster'}`);
+    console.log(`Username: ${username}`);
+    console.log(`AWS Region: ${awsRegion}`);
     console.log('TLS encryption: ENABLED (required for IAM auth)');
 
     // Generate initial IAM auth token
-    const token = await generateIAMAuthToken(host, port, username, awsRegion);
+    console.log('Generating IAM authentication token...');
+    const token = await generateIAMAuthToken(host, port, username, awsRegion, isServerless);
+    console.log(`Generated token length: ${token.length} characters`);
+    console.log(`Token preview: ${token.substring(0, 100)}...`);
+    if (isServerless) {
+      console.log('Token includes ResourceType=ServerlessCache parameter');
+    }
 
     // Create Redis client with IAM credentials and TLS
     // TLS is REQUIRED for IAM authentication with AWS ElastiCache
