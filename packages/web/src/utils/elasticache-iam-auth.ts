@@ -8,8 +8,9 @@ import { Sha256 } from '@aws-crypto/sha256-js';
  *
  * Based on AWS SigV4 signing process:
  * 1. Creates a pre-signed URL with Action=connect&User=username
- * 2. Signs the URL with AWS credentials
- * 3. Returns the signed token (without http:// prefix) for use as password
+ * 2. For Serverless: includes ResourceType=ServerlessCache
+ * 3. Signs the URL with AWS credentials
+ * 4. Returns the signed token (without http:// prefix) for use as password
  *
  * Tokens are valid for 15 minutes.
  *
@@ -17,17 +18,35 @@ import { Sha256 } from '@aws-crypto/sha256-js';
  * @param port - ElastiCache cluster port (typically 6379)
  * @param username - IAM-enabled ElastiCache username
  * @param region - AWS region
+ * @param isServerless - Whether this is a Serverless cache (default: auto-detect from endpoint)
  * @returns Signed authentication token to use as password
  */
 export async function generateIAMAuthToken(
   endpoint: string,
   port: number,
   username: string,
-  region: string
+  region: string,
+  isServerless?: boolean
 ): Promise<string> {
   // Get AWS credentials from the environment (ECS task role in production)
   const credentialProvider = fromNodeProviderChain();
   const credentials = await credentialProvider();
+
+  // Auto-detect if this is a serverless cache based on endpoint
+  const detectServerless = isServerless !== undefined
+    ? isServerless
+    : endpoint.includes('.serverless.');
+
+  // Create query parameters
+  const query: Record<string, string> = {
+    Action: 'connect',
+    User: username,
+  };
+
+  // Add ResourceType for Serverless caches (REQUIRED)
+  if (detectServerless) {
+    query.ResourceType = 'ServerlessCache';
+  }
 
   // Create the HTTP request to sign
   const request = new HttpRequest({
@@ -36,10 +55,7 @@ export async function generateIAMAuthToken(
     hostname: endpoint,
     port,
     path: '/',
-    query: {
-      Action: 'connect',
-      User: username,
-    },
+    query,
     headers: {
       host: `${endpoint}:${port}`,
     },
