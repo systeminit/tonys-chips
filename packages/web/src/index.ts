@@ -29,6 +29,9 @@ let tokenRefreshInterval: NodeJS.Timeout | null = null;
 async function initializeRedisClient(): Promise<RedisClientType> {
   let client: RedisClientType;
 
+  // Store IAM auth details for later use
+  let iamAuthDetails: { host: string; port: number; username: string; isServerless: boolean; token: string } | null = null;
+
   if (useIAMAuth) {
     // Parse endpoint from REDIS_URL for IAM authentication
     const url = new URL(redisUrl);
@@ -69,12 +72,15 @@ async function initializeRedisClient(): Promise<RedisClientType> {
       console.log('Token includes ResourceType=ServerlessCache parameter');
     }
 
+    // Store for manual AUTH after connection
+    iamAuthDetails = { host, port, username, isServerless, token };
+
     // Create Redis client with IAM credentials and TLS
     // TLS is REQUIRED for IAM authentication with AWS ElastiCache
     //
-    // Based on AWS documentation and examples (Python, Java, Go):
-    // Both username and password (IAM token) must be provided for AUTH
-    // The redis client will send: AUTH username token
+    // IMPORTANT: For IAM auth, we DON'T pass username/password to createClient
+    // Instead, we'll manually call AUTH after connection is established
+    // This ensures the AUTH command is sent exactly as needed by ElastiCache
     client = createClient({
       socket: {
         host,
@@ -93,10 +99,8 @@ async function initializeRedisClient(): Promise<RedisClientType> {
           return Math.min(retries * 100, 3000); // Exponential backoff, max 3s
         },
       },
-      // Provide both username and IAM-generated token for authentication
-      // This matches AWS documentation for IAM auth with ElastiCache
-      username,
-      password: token,
+      // DON'T pass username/password here for IAM auth
+      // We'll call AUTH manually after connection
     });
 
     // Set up token refresh every 10 minutes
@@ -168,6 +172,14 @@ async function initializeRedisClient(): Promise<RedisClientType> {
   try {
     await client.connect();
     console.log('Valkey Client: Connected successfully');
+
+    // For IAM auth, manually send AUTH command after connection
+    if (iamAuthDetails) {
+      console.log('Sending manual AUTH command with IAM token...');
+      console.log(`AUTH ${iamAuthDetails.username} <token>`);
+      await client.auth({ username: iamAuthDetails.username, password: iamAuthDetails.token });
+      console.log('✓ AUTH command successful');
+    }
   } catch (error) {
     console.error('Failed to connect to Redis:', error);
     throw error;
