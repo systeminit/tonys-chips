@@ -80,19 +80,27 @@ export async function generateIAMAuthToken(
     expiresIn: 900,
   });
 
-  // Build the signed URL
-  const signedUrl = new URL(`http://${signedRequest.hostname}:${signedRequest.port || port}${signedRequest.path}`);
+  // Build the complete presigned URL from the signed request
+  // The query parameters are already signed and included in signedRequest.query
+  const protocol = signedRequest.protocol || 'http:';
+  const hostname = signedRequest.hostname;
+  const portNum = signedRequest.port || port;
+  const path = signedRequest.path || '/';
 
-  // Add query parameters from signed request
+  // Build query string from signed request query parameters
+  const queryParams = new URLSearchParams();
   if (signedRequest.query) {
+    // The presigner returns query parameters in the correct order and format
     Object.entries(signedRequest.query).forEach(([key, value]) => {
-      signedUrl.searchParams.set(key, String(value));
+      queryParams.append(key, String(value));
     });
   }
 
-  // Strip the http:// prefix and return
-  // ElastiCache expects just the signed string, not the full URL
-  const token = signedUrl.toString().replace('http://', '');
+  const queryString = queryParams.toString();
+
+  // Build full URL and strip http:// prefix
+  const fullUrl = `${protocol}//${hostname}:${portNum}${path}${queryString ? '?' + queryString : ''}`;
+  const token = fullUrl.replace(/^https?:\/\//, '');
 
   // Log token details for debugging
   console.log(`[IAM Token Debug] Endpoint: ${endpoint}`);
