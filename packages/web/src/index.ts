@@ -175,10 +175,55 @@ async function initializeRedisClient(): Promise<RedisClientType> {
 
     // For IAM auth, manually send AUTH command after connection
     if (iamAuthDetails) {
-      console.log('Sending manual AUTH command with IAM token...');
-      console.log(`AUTH ${iamAuthDetails.username} <token>`);
-      await client.auth({ username: iamAuthDetails.username, password: iamAuthDetails.token });
-      console.log('✓ AUTH command successful');
+      console.log('Attempting IAM authentication...');
+      console.log(`Username: ${iamAuthDetails.username}`);
+      console.log(`Token length: ${iamAuthDetails.token.length} characters`);
+
+      let authenticated = false;
+      let lastError: Error | null = null;
+
+      // Try Method 1: HELLO command with AUTH (Redis 6+)
+      try {
+        console.log('\n[Method 1] Trying HELLO 3 AUTH command...');
+        const helloResult = await client.sendCommand(['HELLO', '3', 'AUTH', iamAuthDetails.username, iamAuthDetails.token]);
+        console.log(`✓ HELLO AUTH successful:`, helloResult);
+        authenticated = true;
+      } catch (error) {
+        console.error('[Method 1] HELLO AUTH failed:', error instanceof Error ? error.message : error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+
+      // Try Method 2: Direct AUTH command with sendCommand
+      if (!authenticated) {
+        try {
+          console.log('\n[Method 2] Trying AUTH with sendCommand...');
+          const authResult = await client.sendCommand(['AUTH', iamAuthDetails.username, iamAuthDetails.token]);
+          console.log(`✓ AUTH sendCommand successful, result:`, authResult);
+          authenticated = true;
+        } catch (error) {
+          console.error('[Method 2] AUTH sendCommand failed:', error instanceof Error ? error.message : error);
+          lastError = error instanceof Error ? error : new Error(String(error));
+        }
+      }
+
+      // Try Method 3: auth() helper method
+      if (!authenticated) {
+        try {
+          console.log('\n[Method 3] Trying auth() helper method...');
+          await client.auth({ username: iamAuthDetails.username, password: iamAuthDetails.token });
+          console.log(`✓ auth() method successful`);
+          authenticated = true;
+        } catch (error) {
+          console.error('[Method 3] auth() method failed:', error instanceof Error ? error.message : error);
+          lastError = error instanceof Error ? error : new Error(String(error));
+        }
+      }
+
+      if (!authenticated) {
+        throw new Error(`All authentication methods failed. Last error: ${lastError?.message}`);
+      }
+
+      console.log('\n✅ Successfully authenticated with IAM');
     }
   } catch (error) {
     console.error('Failed to connect to Redis:', error);
