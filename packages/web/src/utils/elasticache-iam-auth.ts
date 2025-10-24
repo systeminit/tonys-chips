@@ -32,6 +32,12 @@ export async function generateIAMAuthToken(
   const credentialProvider = fromNodeProviderChain();
   const credentials = await credentialProvider();
 
+  // Log credential details for debugging (not the actual secrets)
+  console.log(`[IAM Token Debug] Using AWS credentials - AccessKeyId: ${credentials.accessKeyId.substring(0, 10)}...`);
+  if (credentials.sessionToken) {
+    console.log(`[IAM Token Debug] Session token present: ${credentials.sessionToken.substring(0, 20)}...`);
+  }
+
   // Auto-detect if this is a serverless cache based on endpoint
   const detectServerless = isServerless !== undefined
     ? isServerless
@@ -86,5 +92,27 @@ export async function generateIAMAuthToken(
 
   // Strip the http:// prefix and return
   // ElastiCache expects just the signed string, not the full URL
-  return signedUrl.toString().replace('http://', '');
+  const token = signedUrl.toString().replace('http://', '');
+
+  // Log token details for debugging
+  console.log(`[IAM Token Debug] Endpoint: ${endpoint}`);
+  console.log(`[IAM Token Debug] Serverless: ${detectServerless}`);
+  console.log(`[IAM Token Debug] Username: ${username}`);
+  console.log(`[IAM Token Debug] Token length: ${token.length}`);
+  console.log(`[IAM Token Debug] Full token: ${token}`);
+
+  // Parse and log query parameters for verification
+  try {
+    const tokenUrl = new URL('http://' + token);
+    console.log(`[IAM Token Debug] Query params:`);
+    tokenUrl.searchParams.forEach((value, key) => {
+      if (key === 'User' || key === 'Action' || key === 'ResourceType') {
+        console.log(`  ${key}=${value}`);
+      }
+    });
+  } catch (e) {
+    console.error(`[IAM Token Debug] Failed to parse token as URL:`, e);
+  }
+
+  return token;
 }
