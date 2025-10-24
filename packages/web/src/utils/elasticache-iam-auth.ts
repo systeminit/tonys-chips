@@ -54,10 +54,12 @@ export async function generateIAMAuthToken(
     query.ResourceType = 'ServerlessCache';
   }
 
-  // Create the HTTP request to sign
+  // Create the HTTPS request to sign
+  // IMPORTANT: Must use https:// protocol for signature (even though final token strips the protocol)
+  // This matches the Python implementation in AWS docs
   const request = new HttpRequest({
     method: 'GET',
-    protocol: 'http:',
+    protocol: 'https:',
     hostname: endpoint,
     port,
     path: '/',

@@ -71,6 +71,10 @@ async function initializeRedisClient(): Promise<RedisClientType> {
 
     // Create Redis client with IAM credentials and TLS
     // TLS is REQUIRED for IAM authentication with AWS ElastiCache
+    //
+    // Based on AWS documentation and examples (Python, Java, Go):
+    // Both username and password (IAM token) must be provided for AUTH
+    // The redis client will send: AUTH username token
     client = createClient({
       socket: {
         host,
@@ -89,6 +93,8 @@ async function initializeRedisClient(): Promise<RedisClientType> {
           return Math.min(retries * 100, 3000); // Exponential backoff, max 3s
         },
       },
+      // Provide both username and IAM-generated token for authentication
+      // This matches AWS documentation for IAM auth with ElastiCache
       username,
       password: token,
     });
