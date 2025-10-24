@@ -37,13 +37,32 @@ async function initializeRedisClient(): Promise<RedisClientType> {
     const username = 'tonys-chips-web'; // Must match ElastiCache User
 
     console.log('Initializing Valkey client with IAM authentication...');
+    console.log(`Connecting to: ${host}:${port}`);
+    console.log('TLS encryption: ENABLED (required for IAM auth)');
 
     // Generate initial IAM auth token
     const token = await generateIAMAuthToken(host, port, username, awsRegion);
 
-    // Create Redis client with IAM credentials
+    // Create Redis client with IAM credentials and TLS
+    // TLS is REQUIRED for IAM authentication with AWS ElastiCache
     client = createClient({
-      socket: { host, port },
+      socket: {
+        host,
+        port,
+        connectTimeout: 10000, // 10 second connection timeout
+        // Enable TLS/SSL - required for IAM authentication
+        tls: true,
+        // Optionally reject unauthorized certificates in production
+        // rejectUnauthorized: process.env.NODE_ENV === 'production',
+        reconnectStrategy: (retries: number) => {
+          if (retries > 3) {
+            console.error('Max Redis reconnection attempts reached');
+            return new Error('Max reconnection attempts reached');
+          }
+          console.log(`Reconnecting to Redis, attempt ${retries + 1}`);
+          return Math.min(retries * 100, 3000); // Exponential backoff, max 3s
+        },
+      },
       username,
       password: token,
     });
@@ -55,28 +74,72 @@ async function initializeRedisClient(): Promise<RedisClientType> {
       try {
         console.log('Refreshing IAM auth token...');
         const newToken = await generateIAMAuthToken(host, port, username, awsRegion);
+
+        // Use AUTH command to refresh credentials
+        // This also extends the 12-hour connection limit
         await client.auth({ username, password: newToken });
         console.log('IAM auth token refreshed successfully');
       } catch (error) {
         console.error('Failed to refresh IAM auth token:', error);
+        // Connection might be dead after 12 hours, try to reconnect
+        if (error instanceof Error && error.message.includes('closed')) {
+          console.log('Connection appears closed, will attempt reconnection...');
+        }
       }
     }, 10 * 60 * 1000); // 10 minutes
   } else {
     // Use standard connection (for local development)
     console.log('Initializing Valkey client with standard connection...');
-    client = createClient({ url: redisUrl });
+    console.log(`Connecting to: ${redisUrl}`);
+
+    client = createClient({
+      url: redisUrl,
+      socket: {
+        connectTimeout: 10000, // 10 second connection timeout
+        reconnectStrategy: (retries: number) => {
+          if (retries > 3) {
+            console.error('Max Redis reconnection attempts reached');
+            return new Error('Max reconnection attempts reached');
+          }
+          console.log(`Reconnecting to Redis, attempt ${retries + 1}`);
+          return Math.min(retries * 100, 3000); // Exponential backoff, max 3s
+        },
+        // Enable TCP keep-alive to detect dead connections
+        keepAlive: true,
+      },
+    });
   }
 
-  client.on('error', (err) => {
+  // Event handlers for better debugging
+  client.on('error', (err: Error) => {
     console.error('Valkey Client Error:', err);
   });
 
   client.on('connect', () => {
-    console.log('Valkey Client Connected');
+    console.log('Valkey Client: TCP connection established');
   });
 
-  // Connect to Valkey
-  await client.connect();
+  client.on('ready', () => {
+    console.log('Valkey Client: Ready to accept commands');
+  });
+
+  client.on('reconnecting', () => {
+    console.log('Valkey Client: Attempting to reconnect...');
+  });
+
+  client.on('end', () => {
+    console.log('Valkey Client: Connection closed');
+  });
+
+  // Connect to Valkey with timeout
+  console.log('Attempting Redis connection...');
+  try {
+    await client.connect();
+    console.log('Valkey Client: Connected successfully');
+  } catch (error) {
+    console.error('Failed to connect to Redis:', error);
+    throw error;
+  }
 
   return client;
 }
