@@ -54,12 +54,13 @@ export async function generateIAMAuthToken(
     query.ResourceType = 'ServerlessCache';
   }
 
-  // Create the HTTPS request to sign
-  // IMPORTANT: Must use https:// protocol for signature (even though final token strips the protocol)
-  // This matches the Python implementation in AWS docs
+  // Create the HTTP request to sign
+  // IMPORTANT: Use http:// protocol for the signature (not https)
+  // The Go implementation from AWS community shows Scheme: "http"
+  // Even though we connect with TLS, the token signature uses http://
   const request = new HttpRequest({
     method: 'GET',
-    protocol: 'https:',
+    protocol: 'http:',
     hostname: endpoint,
     port,
     path: '/',
