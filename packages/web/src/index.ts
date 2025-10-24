@@ -109,7 +109,7 @@ async function initializeRedisClient(): Promise<RedisClientType> {
     tokenRefreshInterval = setInterval(async () => {
       try {
         console.log('Refreshing IAM auth token...');
-        const newToken = await generateIAMAuthToken(host, port, username, awsRegion);
+        const newToken = await generateIAMAuthToken(host, port, username, awsRegion, isServerless);
 
         // Use AUTH command to refresh credentials
         // This also extends the 12-hour connection limit
