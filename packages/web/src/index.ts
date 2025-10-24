@@ -49,6 +49,17 @@ async function initializeRedisClient(): Promise<RedisClientType> {
     console.log(`AWS Region: ${awsRegion}`);
     console.log('TLS encryption: ENABLED (required for IAM auth)');
 
+    // Verify AWS credentials/identity being used
+    console.log('Verifying AWS identity...');
+    try {
+      const { fromNodeProviderChain } = await import('@aws-sdk/credential-providers');
+      const credentialProvider = fromNodeProviderChain();
+      const credentials = await credentialProvider();
+      console.log(`Using AWS AccessKeyId: ${credentials.accessKeyId.substring(0, 10)}...`);
+    } catch (error) {
+      console.error('Failed to get AWS credentials:', error);
+    }
+
     // Generate initial IAM auth token
     console.log('Generating IAM authentication token...');
     const token = await generateIAMAuthToken(host, port, username, awsRegion, isServerless);
@@ -343,7 +354,23 @@ async function start() {
 
   } catch (error) {
     console.error('Failed to start server:', error);
-    process.exit(1);
+
+    // In development/sandbox, allow app to start without Redis for debugging
+    if (process.env.ALLOW_STARTUP_WITHOUT_REDIS === 'true') {
+      console.warn('⚠️  ALLOW_STARTUP_WITHOUT_REDIS=true: Starting server despite connection failure');
+      console.warn('⚠️  Shopping cart functionality will NOT work');
+
+      // Start server without Redis
+      const server = app.listen(PORT, () => {
+        console.log(`Web server running on port ${PORT} (WITHOUT REDIS)`);
+        console.log(`API URL: ${process.env.API_URL || 'http://localhost:3000'}`);
+      });
+
+      process.on('SIGTERM', () => server.close());
+      process.on('SIGINT', () => server.close());
+    } else {
+      process.exit(1);
+    }
   }
 }
 
